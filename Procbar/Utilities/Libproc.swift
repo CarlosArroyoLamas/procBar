@@ -155,7 +155,8 @@ final class LibprocSource: ProcessSource {
             // Only LISTEN state = 1 per tcp_fsm.h (TCPS_LISTEN)
             guard tcp.tcpsi_state == 1 else { continue }
             let rawPort = tcp.tcpsi_ini.insi_lport.bigEndian
-            let port = UInt16(truncatingIfNeeded: UInt32(rawPort) & 0xFFFF)
+            // rawPort is CInt (Int32); use bitPattern to avoid trap on negative values.
+            let port = UInt16(truncatingIfNeeded: UInt32(bitPattern: rawPort) & 0xFFFF)
             if port > 0 { ports.append(port) }
         }
         return Array(Set(ports)).sorted()

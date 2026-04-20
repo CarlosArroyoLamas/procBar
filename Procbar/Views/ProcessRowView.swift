@@ -20,9 +20,12 @@ struct ProcessRowView: View {
 
     private var identityZone: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(process.displayName.uppercased())
-                .font(DesignSystem.Typography.body)
-                .foregroundStyle(DesignSystem.Color.textPrimary.swiftUI)
+            HStack(spacing: 6) {
+                ActivityDot(state: process.activity)
+                Text(process.displayName.uppercased())
+                    .font(DesignSystem.Typography.body)
+                    .foregroundStyle(nameColor)
+            }
             Text("PID \(process.pid)")
                 .font(DesignSystem.Typography.pidSubtitle)
                 .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
@@ -34,7 +37,11 @@ struct ProcessRowView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(String(format: "%.0f%%", process.cpuPercent))
                 .font(DesignSystem.Typography.numeric)
-                .foregroundStyle(DesignSystem.Color.textPrimary.swiftUI)
+                .foregroundStyle(
+                    process.activity == .idle
+                        ? DesignSystem.Color.textTertiary.swiftUI
+                        : DesignSystem.Color.textPrimary.swiftUI
+                )
             CPUBar(percent: process.cpuPercent)
         }
         .frame(width: 80, alignment: .leading)
@@ -62,9 +69,7 @@ struct ProcessRowView: View {
 
     private var actionZone: some View {
         VStack(alignment: .trailing, spacing: 3) {
-            Text(formatUptime(process.uptimeSeconds))
-                .font(DesignSystem.Typography.pidSubtitle)
-                .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+            uptimeOrIdleLabel
             StopButton(state: stopState) {
                 if stopState == .terminating {
                     killCoordinator.forceKill(process: process)
@@ -76,6 +81,25 @@ struct ProcessRowView: View {
                     stopState = .terminating
                 }
             }
+        }
+    }
+
+    private var nameColor: Color {
+        process.activity == .idle
+            ? DesignSystem.Color.textSecondary.swiftUI
+            : DesignSystem.Color.textPrimary.swiftUI
+    }
+
+    @ViewBuilder
+    private var uptimeOrIdleLabel: some View {
+        if process.activity == .idle, let idle = process.idleSeconds {
+            Text("idle \(formatUptime(idle))")
+                .font(DesignSystem.Typography.pidSubtitle)
+                .foregroundStyle(DesignSystem.Color.accent.swiftUI)
+        } else {
+            Text(formatUptime(process.uptimeSeconds))
+                .font(DesignSystem.Typography.pidSubtitle)
+                .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
         }
     }
 

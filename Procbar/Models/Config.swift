@@ -25,6 +25,7 @@ struct Config: Codable, Equatable {
     var worktreeRoots: [String]
     var excludedPaths: [String]
     var processPatterns: [Pattern]
+    var activity: ActivityConfig
 
     enum CodingKeys: String, CodingKey {
         case refreshIntervalSeconds = "refresh_interval_seconds"
@@ -33,6 +34,7 @@ struct Config: Codable, Equatable {
         case worktreeRoots          = "worktree_roots"
         case excludedPaths          = "excluded_paths"
         case processPatterns        = "process_patterns"
+        case activity
     }
 
     init(
@@ -41,7 +43,8 @@ struct Config: Codable, Equatable {
         launchAtLogin: Bool = false,
         worktreeRoots: [String] = [],
         excludedPaths: [String] = [],
-        processPatterns: [Pattern] = []
+        processPatterns: [Pattern] = [],
+        activity: ActivityConfig = ActivityConfig()
     ) {
         self.refreshIntervalSeconds = max(1, min(30, refreshIntervalSeconds))
         self.showBranch = showBranch
@@ -49,6 +52,7 @@ struct Config: Codable, Equatable {
         self.worktreeRoots = worktreeRoots
         self.excludedPaths = excludedPaths
         self.processPatterns = processPatterns
+        self.activity = activity
     }
 
     init(from decoder: Decoder) throws {
@@ -59,13 +63,15 @@ struct Config: Codable, Equatable {
         let roots = try c.decodeIfPresent([String].self, forKey: .worktreeRoots) ?? []
         let excluded = try c.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
         let patterns = try c.decodeIfPresent([Pattern].self, forKey: .processPatterns) ?? []
+        let activity = (try? c.decode(ActivityConfig.self, forKey: .activity)) ?? ActivityConfig()
         self.init(
             refreshIntervalSeconds: refresh,
             showBranch: showBranch,
             launchAtLogin: launch,
             worktreeRoots: roots,
             excludedPaths: excluded,
-            processPatterns: patterns
+            processPatterns: patterns,
+            activity: activity
         )
     }
 
@@ -92,7 +98,32 @@ struct Config: Codable, Equatable {
                 .init(name: "Vite",     match: "vite",     matchField: .command),
                 .init(name: "Node",     match: "node",     matchField: .name),
                 .init(name: "Postgres", match: "postgres", matchField: .name)
-            ]
+            ],
+            activity: ActivityConfig()
         )
+    }
+}
+
+extension Config {
+    struct ActivityConfig: Codable, Equatable {
+        var activeThresholdPercent: Double
+        var recentWindowMinutes: Int
+
+        enum CodingKeys: String, CodingKey {
+            case activeThresholdPercent = "active_threshold_percent"
+            case recentWindowMinutes    = "recent_window_minutes"
+        }
+
+        init(activeThresholdPercent: Double = 1.0, recentWindowMinutes: Int = 5) {
+            self.activeThresholdPercent = max(0, activeThresholdPercent)
+            self.recentWindowMinutes    = max(1, min(240, recentWindowMinutes))
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let pct = try c.decodeIfPresent(Double.self, forKey: .activeThresholdPercent) ?? 1.0
+            let mins = try c.decodeIfPresent(Int.self, forKey: .recentWindowMinutes) ?? 5
+            self.init(activeThresholdPercent: pct, recentWindowMinutes: mins)
+        }
     }
 }

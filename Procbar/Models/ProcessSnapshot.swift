@@ -8,10 +8,10 @@ struct RawProcess: Equatable, Hashable {
 }
 
 struct ProcessDetail: Equatable, Hashable {
-    let pid: Int32
-    let cwd: String?
-    let residentBytes: UInt64
-    let cpuTicks: UInt64           // cumulative, user+system
-    let wallStartSeconds: TimeInterval  // seconds since epoch of process start
-    let listeningPorts: [UInt16]
+    var pid: Int32
+    var cwd: String?
+    var residentBytes: UInt64
+    var cpuTicks: UInt64           // cumulative, user+system
+    var wallStartSeconds: TimeInterval  // seconds since epoch of process start
+    var listeningPorts: [UInt16]
 }

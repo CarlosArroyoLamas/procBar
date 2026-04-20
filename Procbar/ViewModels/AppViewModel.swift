@@ -49,9 +49,9 @@ final class AppViewModel: ObservableObject {
     func tickOnce() {
         let cfg = configProvider()
         let wts = worktreesProvider()
-        let rawAll = scanner.sample(matchPIDs: []).all
+        let rawAll = scanner.sample(matchPIDs: [], activity: cfg.activity).all
         let matched = ProcessMatcher.matchPIDs(patterns: cfg.processPatterns, raw: rawAll)
-        let result = scanner.sample(matchPIDs: matched)
+        let result = scanner.sample(matchPIDs: matched, activity: cfg.activity)
         let grouped = ProcessMatcher.group(
             tracked: result.tracked,
             worktrees: wts,

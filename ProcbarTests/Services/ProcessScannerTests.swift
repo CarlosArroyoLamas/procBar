@@ -39,6 +39,42 @@ final class ProcessScannerTests: XCTestCase {
         XCTAssertTrue(result.tracked.isEmpty)
         XCTAssertEqual(result.all.count, 1)
     }
+
+    func test_activity_transitions_active_recent_idle() {
+        var clockTime = Date(timeIntervalSince1970: 1_700_000_000)
+        let clock: () -> Date = { clockTime }
+        let fake = FakeProcessSource()
+        fake.raw = [RawProcess(pid: 10, ppid: 1, name: "vite", command: "vite dev")]
+        fake.detailsByPid = [10: ProcessDetail(
+            pid: 10, cwd: "/tmp/wt", residentBytes: 1_000,
+            cpuTicks: 0, wallStartSeconds: 1_699_999_000, listeningPorts: []
+        )]
+        let scanner = ProcessScanner(source: fake, clock: clock)
+        let cfg = Config.ActivityConfig(activeThresholdPercent: 1.0, recentWindowMinutes: 5)
+
+        // t=0: first sample. Cpu=0 but first-seen PID is seeded as active.
+        var r = scanner.sample(matchPIDs: [10], activity: cfg)
+        XCTAssertEqual(r.tracked.first?.activity, .activeNow)
+
+        // t=+1s, large tick delta → active now.
+        clockTime = clockTime.addingTimeInterval(1)
+        fake.detailsByPid[10]?.cpuTicks = 500_000_000  // ~50% on a 1-core basis
+        r = scanner.sample(matchPIDs: [10], activity: cfg)
+        XCTAssertEqual(r.tracked.first?.activity, .activeNow)
+
+        // t=+2s, no tick delta → cpu≈0 → recently active (within 5 min window).
+        clockTime = clockTime.addingTimeInterval(1)
+        fake.detailsByPid[10]?.cpuTicks = 500_000_000
+        r = scanner.sample(matchPIDs: [10], activity: cfg)
+        XCTAssertEqual(r.tracked.first?.activity, .recentlyActive)
+
+        // t=+10min, still no delta → idle.
+        clockTime = clockTime.addingTimeInterval(10 * 60)
+        r = scanner.sample(matchPIDs: [10], activity: cfg)
+        XCTAssertEqual(r.tracked.first?.activity, .idle)
+        XCTAssertNotNil(r.tracked.first?.idleSeconds)
+        XCTAssertGreaterThan(r.tracked.first!.idleSeconds!, 590) // ~10 min
+    }
 }
 
 final class FakeProcessSource: ProcessSource {

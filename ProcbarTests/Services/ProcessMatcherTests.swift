@@ -45,6 +45,6 @@ final class ProcessMatcherTests: XCTestCase {
     private func mkTracked(pid: Int32, cwd: String) -> TrackedProcess {
         TrackedProcess(pid: pid, ppid: 0, displayName: "x", command: "x",
                        cwd: cwd, cpuPercent: 0, memoryMB: 0, ports: [],
-                       uptimeSeconds: 0)
+                       uptimeSeconds: 0, activity: .activeNow, idleSeconds: nil)
     }
 }

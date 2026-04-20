@@ -54,6 +54,10 @@ extension DesignSystem {
             light: NSColor(hex: 0x2F8C4C),
             dark:  NSColor(hex: 0x4FD97C)
         )
+        static let idleDot = ColorPair(
+            light: NSColor(hex: 0x9A9AA0),
+            dark:  NSColor(hex: 0x5C5C65)
+        )
     }
 }
 

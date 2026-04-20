@@ -73,4 +73,35 @@ final class ConfigTests: XCTestCase {
         let decoded = try Config.decode(fromYAML: yaml)
         XCTAssertEqual(decoded, original)
     }
+
+    func test_activity_defaults_applied_when_missing() throws {
+        let yaml = "worktree_roots: []\nprocess_patterns: []"
+        let cfg = try Config.decode(fromYAML: yaml)
+        XCTAssertEqual(cfg.activity.activeThresholdPercent, 1.0, accuracy: 0.001)
+        XCTAssertEqual(cfg.activity.recentWindowMinutes, 5)
+    }
+
+    func test_activity_values_parsed_and_clamped() throws {
+        let yaml = """
+        worktree_roots: []
+        process_patterns: []
+        activity:
+          active_threshold_percent: 2.5
+          recent_window_minutes: 10
+        """
+        let cfg = try Config.decode(fromYAML: yaml)
+        XCTAssertEqual(cfg.activity.activeThresholdPercent, 2.5, accuracy: 0.001)
+        XCTAssertEqual(cfg.activity.recentWindowMinutes, 10)
+
+        let tooBig = """
+        worktree_roots: []
+        process_patterns: []
+        activity:
+          active_threshold_percent: -1
+          recent_window_minutes: 99999
+        """
+        let cfg2 = try Config.decode(fromYAML: tooBig)
+        XCTAssertEqual(cfg2.activity.activeThresholdPercent, 0.0)
+        XCTAssertEqual(cfg2.activity.recentWindowMinutes, 240)
+    }
 }
