@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode / Swift build artifacts (for when the app lives here)
+.build/
+.swiftpm/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+*.xcuserstate
+build/
+
+# Generated Xcode project (keep project.yml as source of truth)
+Procbar.xcodeproj/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

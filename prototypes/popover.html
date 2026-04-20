@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Procbar — Interactive Popover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --d-bg:        #0E0E10;
+      --d-surface:   #16161A;
+      --d-hairline:  rgba(255,255,255,0.10);
+      --d-text-1:    #F2F2F5;
+      --d-text-2:    #8A8A94;
+      --d-text-3:    #5C5C65;
+      --d-accent:    #FFB020;
+      --d-accent-bg: rgba(255,176,32,0.15);
+      --d-warning:   #FF5B49;
+      --d-success:   #4FD97C;
+
+      --l-bg:        #FAFAF7;
+      --l-surface:   #FFFFFF;
+      --l-hairline:  rgba(0,0,0,0.10);
+      --l-text-1:    #131316;
+      --l-text-2:    #5C5C65;
+      --l-text-3:    #9A9AA0;
+      --l-accent:    #C9820A;
+      --l-accent-bg: rgba(201,130,10,0.15);
+      --l-warning:   #C7341E;
+      --l-success:   #2F8C4C;
+
+      --native-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', sans-serif;
+      --native-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
+      --label-mono:  'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background:
+        radial-gradient(1200px 800px at 20% -10%, #1e1e24 0%, transparent 60%),
+        radial-gradient(1000px 700px at 100% 110%, #24160a 0%, transparent 55%),
+        #0a0a0b;
+      min-height: 100vh;
+      color: var(--d-text-1);
+      font-family: var(--native-sans);
+      display: grid;
+      place-items: start center;
+      padding: 48px 16px 80px;
+      transition: background 0.4s ease;
+    }
+    body[data-theme="light"] {
+      background:
+        radial-gradient(1200px 800px at 20% -10%, #f4f2ec 0%, transparent 60%),
+        radial-gradient(1000px 700px at 100% 110%, #fff5e2 0%, transparent 55%),
+        #ece9e2;
+    }
+
+    /* theme toggle */
+    .controls {
+      position: fixed; top: 16px; right: 20px;
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--label-mono);
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--d-text-2);
+      background: rgba(15,15,17,0.7);
+      backdrop-filter: blur(6px);
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    body[data-theme="light"] .controls { color: var(--l-text-2); background: rgba(255,255,255,0.75); border-color: rgba(0,0,0,0.08); }
+    .seg {
+      display: inline-flex;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      padding: 2px;
+      opacity: 0.8;
+    }
+    .seg button {
+      background: none; border: 0;
+      font-family: inherit; font-size: 10px; letter-spacing: 0.14em;
+      color: inherit; padding: 3px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .seg button.active {
+      background: var(--d-accent);
+      color: #0e0e10;
+      font-weight: 600;
+    }
+    body[data-theme="light"] .seg button.active { background: var(--l-accent); color: #fafaf7; }
+
+    .hint {
+      margin-top: 14px;
+      font-family: var(--label-mono);
+      font-size: 10px; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--d-text-3);
+      text-align: center;
+    }
+    body[data-theme="light"] .hint { color: var(--l-text-3); }
+
+    /* ---------- popover ---------- */
+    .popover-wrap { display: inline-flex; flex-direction: column; align-items: center; margin-top: 32px; }
+    .popover-arrow {
+      width: 16px; height: 8px;
+      background: var(--d-bg);
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      margin-bottom: -1px;
+    }
+    body[data-theme="light"] .popover-arrow { background: var(--l-bg); }
+    .popover {
+      width: 340px;
+      border-radius: 10px;
+      background: var(--d-bg);
+      color: var(--d-text-1);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04),
+        0 20px 40px rgba(0,0,0,0.55),
+        0 4px 10px rgba(0,0,0,0.35);
+      padding: 10px 14px;
+      overflow: hidden;
+    }
+    body[data-theme="light"] .popover {
+      background: var(--l-bg);
+      color: var(--l-text-1);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.06),
+        0 20px 40px rgba(0,0,0,0.22),
+        0 4px 10px rgba(0,0,0,0.12);
+    }
+
+    .po-header { display: flex; align-items: center; gap: 6px; height: 28px; }
+    .po-header .title {
+      font-size: 13px; font-weight: 600; letter-spacing: -0.3px;
+      color: var(--d-text-1);
+    }
+    body[data-theme="light"] .po-header .title { color: var(--l-text-1); }
+    .po-header .stats {
+      margin-left: auto;
+      font-family: var(--native-mono);
+      font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+      font-weight: 500;
+      color: var(--d-text-3);
+    }
+    body[data-theme="light"] .po-header .stats { color: var(--l-text-3); }
+
+    .mb-icon {
+      width: 14px; height: 14px;
+      display: inline-block; position: relative;
+      color: currentColor;
+    }
+    .mb-icon .bar { position: absolute; left: 1px; height: 2px; background: currentColor; border-radius: 1px; }
+    .mb-icon .bar:nth-child(1) { top: 3px;  width: 9px; }
+    .mb-icon .bar:nth-child(2) { top: 6px;  width: 5px; }
+    .mb-icon .bar:nth-child(3) { top: 9px;  width: 7px; }
+
+    .hairline { height: 1px; background: var(--d-hairline); }
+    body[data-theme="light"] .hairline { background: var(--l-hairline); }
+
+    .wt-section + .wt-section { margin-top: 12px; }
+    .wt-header { display: flex; align-items: center; gap: 6px; height: 26px; }
+    .wt-chevron {
+      width: 10px; height: 10px; color: var(--d-text-3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px;
+    }
+    body[data-theme="light"] .wt-chevron { color: var(--l-text-3); }
+    .wt-name { font-size: 12px; font-weight: 500; color: var(--d-text-1); }
+    body[data-theme="light"] .wt-name { color: var(--l-text-1); }
+    .wt-branch-icon { font-size: 11px; color: var(--d-text-3); margin-left: 4px; }
+    body[data-theme="light"] .wt-branch-icon { color: var(--l-text-3); }
+    .wt-branch {
+      font-family: var(--native-mono); font-size: 11px;
+      color: var(--d-text-3); letter-spacing: 0.2px;
+    }
+    body[data-theme="light"] .wt-branch { color: var(--l-text-3); }
+    .wt-count {
+      margin-left: auto;
+      font-family: var(--native-mono); font-size: 10px; font-weight: 600;
+      color: var(--d-accent); background: var(--d-accent-bg);
+      padding: 2px 7px; border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+      min-width: 20px; text-align: center;
+      transition: transform 0.2s;
+    }
+    body[data-theme="light"] .wt-count { color: var(--l-accent); background: var(--l-accent-bg); }
+
+    .proc-row {
+      display: grid;
+      grid-template-columns: 110px 80px 88px 1fr;
+      align-items: center; gap: 8px;
+      height: 34px; padding-top: 2px;
+      overflow: hidden;
+      transition:
+        opacity 0.3s ease,
+        height 0.35s cubic-bezier(.25,.8,.3,1),
+        padding 0.35s cubic-bezier(.25,.8,.3,1),
+        background 0.25s ease;
+    }
+    .proc-row[data-anim="exit"] { opacity: 0; height: 0; padding: 0; }
+    .proc-row[data-anim="success"] { background: color-mix(in srgb, var(--d-success) 22%, transparent); }
+    body[data-theme="light"] .proc-row[data-anim="success"] { background: color-mix(in srgb, var(--l-success) 30%, transparent); }
+
+    .col-id { display: flex; flex-direction: column; }
+    .proc-name {
+      font-size: 12px; font-weight: 500;
+      color: var(--d-text-1);
+      letter-spacing: 0.02em; text-transform: uppercase;
+    }
+    body[data-theme="light"] .proc-name { color: var(--l-text-1); }
+    .proc-row.idle .proc-name { color: var(--d-text-2); }
+    body[data-theme="light"] .proc-row.idle .proc-name { color: var(--l-text-2); }
+
+    /* activity dot */
+    .proc-head { display: flex; align-items: center; gap: 6px; }
+    .proc-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.3s, box-shadow 0.3s, transform 0.18s;
+    }
+    .proc-dot.active {
+      background: var(--d-success);
+      box-shadow: 0 0 4px rgba(79,217,124,0.5);
+    }
+    .proc-dot.recent {
+      background: var(--d-accent);
+    }
+    .proc-dot.idle {
+      background: var(--d-text-3);
+    }
+    body[data-theme="light"] .proc-dot.active { background: var(--l-success); box-shadow: 0 0 4px rgba(47,140,76,0.45); }
+    body[data-theme="light"] .proc-dot.recent { background: var(--l-accent); }
+    body[data-theme="light"] .proc-dot.idle   { background: var(--l-text-3); }
+
+    .proc-dot.bump { transform: scale(1.35); }
+
+    .proc-idle-label {
+      font-family: var(--native-mono); font-size: 10px;
+      color: var(--d-accent);
+      font-variant-numeric: tabular-nums;
+    }
+    body[data-theme="light"] .proc-idle-label { color: var(--l-accent); }
+
+    .proc-row.idle .proc-cpu { color: var(--d-text-3); }
+    body[data-theme="light"] .proc-row.idle .proc-cpu { color: var(--l-text-3); }
+    .proc-pid {
+      font-family: var(--native-mono); font-size: 10px;
+      color: var(--d-text-3);
+      font-variant-numeric: tabular-nums;
+      margin-top: 1px;
+    }
+    body[data-theme="light"] .proc-pid { color: var(--l-text-3); }
+
+    .col-meter { display: flex; flex-direction: column; }
+    .proc-cpu {
+      font-family: var(--native-mono); font-size: 11px;
+      color: var(--d-text-1); font-variant-numeric: tabular-nums;
+      margin-bottom: 3px; min-height: 14px;
+      transition: color 0.2s;
+    }
+    body[data-theme="light"] .proc-cpu { color: var(--l-text-1); }
+    .cpu-bar-track {
+      width: 80px; height: 2px;
+      background: var(--d-hairline); border-radius: 1px; overflow: hidden;
+    }
+    body[data-theme="light"] .cpu-bar-track { background: var(--l-hairline); }
+    .cpu-bar-fill {
+      height: 100%;
+      background: var(--d-accent);
+      border-radius: 1px;
+      transition: width 0.5s cubic-bezier(.25,.8,.3,1), background 0.25s;
+    }
+    .cpu-bar-fill.hot { background: var(--d-warning); }
+    body[data-theme="light"] .cpu-bar-fill { background: var(--l-accent); }
+    body[data-theme="light"] .cpu-bar-fill.hot { background: var(--l-warning); }
+
+    .col-res { display: flex; flex-direction: column; gap: 2px; }
+    .res-line { display: flex; align-items: center; gap: 5px; }
+    .res-label {
+      font-size: 9px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--d-text-3);
+    }
+    body[data-theme="light"] .res-label { color: var(--l-text-3); }
+    .res-value {
+      font-family: var(--native-mono); font-size: 11px;
+      color: var(--d-text-1);
+      font-variant-numeric: tabular-nums;
+    }
+    body[data-theme="light"] .res-value { color: var(--l-text-1); }
+
+    .col-act { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .proc-uptime {
+      font-family: var(--native-mono); font-size: 10px;
+      color: var(--d-text-3);
+      font-variant-numeric: tabular-nums;
+    }
+    body[data-theme="light"] .proc-uptime { color: var(--l-text-3); }
+
+    .stop-btn {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      border: 1px solid var(--d-hairline);
+      background: transparent;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600;
+      color: var(--d-text-2);
+      cursor: pointer;
+      position: relative;
+      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+      overflow: visible;
+    }
+    body[data-theme="light"] .stop-btn { border-color: var(--l-hairline); color: var(--l-text-2); }
+    .stop-btn:active { transform: scale(0.94); }
+    .stop-btn:hover:not([data-state="terminating"]):not([data-state="killing"]):not([data-state="done"]) {
+      background: var(--d-warning); color: #fff; border-color: var(--d-warning);
+    }
+    body[data-theme="light"] .stop-btn:hover:not([data-state="terminating"]):not([data-state="killing"]):not([data-state="done"]) {
+      background: var(--l-warning); color: #fff; border-color: var(--l-warning);
+    }
+
+    .stop-btn[data-state="terminating"] {
+      border-color: var(--d-accent); color: var(--d-accent);
+    }
+    body[data-theme="light"] .stop-btn[data-state="terminating"] {
+      border-color: var(--l-accent); color: var(--l-accent);
+    }
+    .stop-btn[data-state="terminating"] .arc {
+      position: absolute; inset: -3px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      border-top-color: var(--d-accent);
+      animation: spin 1.2s linear infinite;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+    body[data-theme="light"] .stop-btn[data-state="terminating"] .arc { border-top-color: var(--l-accent); }
+
+    .stop-btn[data-state="killing"] {
+      background: var(--d-warning); color: #fff; border-color: var(--d-warning);
+      animation: redflash 0.15s ease-out 0s 1;
+    }
+    body[data-theme="light"] .stop-btn[data-state="killing"] {
+      background: var(--l-warning); border-color: var(--l-warning);
+    }
+    .stop-btn[data-state="done"] {
+      background: color-mix(in srgb, var(--d-success) 22%, transparent);
+      border-color: var(--d-success);
+      color: var(--d-success);
+    }
+    body[data-theme="light"] .stop-btn[data-state="done"] {
+      background: color-mix(in srgb, var(--l-success) 22%, transparent);
+      border-color: var(--l-success);
+      color: var(--l-success);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes redflash {
+      0%   { box-shadow: 0 0 0 0 rgba(255,91,73,0.7); }
+      100% { box-shadow: 0 0 0 12px rgba(255,91,73,0); }
+    }
+
+    .po-footer {
+      display: flex; gap: 16px; align-items: center;
+      height: 30px; padding-top: 2px;
+    }
+    .po-footer .f-btn {
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--d-text-2); background: none; border: 0; padding: 0;
+      cursor: pointer;
+    }
+    body[data-theme="light"] .po-footer .f-btn { color: var(--l-text-2); }
+    .po-footer .f-btn:hover {
+      color: var(--d-text-1);
+      text-decoration: underline; text-underline-offset: 3px;
+    }
+    body[data-theme="light"] .po-footer .f-btn:hover { color: var(--l-text-1); }
+
+    /* reset banner when all killed */
+    .all-gone {
+      display: none;
+      padding: 24px 0 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--d-text-2);
+    }
+    .all-gone small {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--label-mono);
+      font-size: 10px; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--d-text-3);
+      cursor: pointer;
+    }
+    body[data-theme="light"] .all-gone { color: var(--l-text-2); }
+    body[data-theme="light"] .all-gone small { color: var(--l-text-3); }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <div class="controls">
+    <span>THEME</span>
+    <div class="seg">
+      <button data-theme-set="dark" class="active">DARK</button>
+      <button data-theme-set="light">LIGHT</button>
+    </div>
+  </div>
+
+  <div class="hint">Watch the dots: <span style="color:#4FD97C">● active</span> · <span style="color:#FFB020">● recent</span> · <span style="color:#5C5C65">● idle</span> · Click any Stop button → watch the kill sequence</div>
+
+  <div class="popover-wrap">
+    <div class="popover-arrow"></div>
+    <div class="popover">
+      <div class="po-header">
+        <span class="mb-icon" id="headerIcon">
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </span>
+        <span class="title">Procbar</span>
+        <span class="stats" id="stats">6 PROC · 3 WT</span>
+      </div>
+      <div class="hairline" style="margin: 4px 0 8px"></div>
+
+      <!-- bringr -->
+      <div class="wt-section" data-wt="bringr">
+        <div class="wt-header">
+          <span class="wt-chevron">▾</span>
+          <span class="wt-name">bringr</span>
+          <span class="wt-branch-icon">⎇</span>
+          <span class="wt-branch">main</span>
+          <span class="wt-count">3</span>
+        </div>
+        <div class="hairline"></div>
+
+        <div class="proc-row" data-uptime-text="14m">
+          <div class="col-id">
+            <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">NX</span></div>
+            <span class="proc-pid">PID 48201</span>
+          </div>
+          <div class="col-meter">
+            <span class="proc-cpu" data-cpu="24">24%</span>
+            <div class="cpu-bar-track"><div class="cpu-bar-fill" style="width:24%"></div></div>
+          </div>
+          <div class="col-res">
+            <div class="res-line"><span class="res-label">MEM</span><span class="res-value">412 MB</span></div>
+            <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:4200</span></div>
+          </div>
+          <div class="col-act">
+            <span class="proc-time">14m</span>
+            <button class="stop-btn" data-state="idle">⏻</button>
+          </div>
+        </div>
+
+        <div class="proc-row" data-uptime-text="12m">
+          <div class="col-id">
+            <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">Vite</span></div>
+            <span class="proc-pid">PID 48322</span>
+          </div>
+          <div class="col-meter">
+            <span class="proc-cpu" data-cpu="9">9%</span>
+            <div class="cpu-bar-track"><div class="cpu-bar-fill" style="width:9%"></div></div>
+          </div>
+          <div class="col-res">
+            <div class="res-line"><span class="res-label">MEM</span><span class="res-value">234 MB</span></div>
+            <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:3000</span></div>
+          </div>
+          <div class="col-act">
+            <span class="proc-time">12m</span>
+            <button class="stop-btn" data-state="idle">⏻</button>
+          </div>
+        </div>
+
+        <div class="proc-row idle" data-uptime-text="3h" data-seed-idle="10800">
+          <div class="col-id">
+            <div class="proc-head"><span class="proc-dot idle"></span><span class="proc-name">Postgres</span></div>
+            <span class="proc-pid">PID 04201</span>
+          </div>
+          <div class="col-meter">
+            <span class="proc-cpu" data-cpu="0">0%</span>
+            <div class="cpu-bar-track"><div class="cpu-bar-fill" style="width:0%"></div></div>
+          </div>
+          <div class="col-res">
+            <div class="res-line"><span class="res-label">MEM</span><span class="res-value">98 MB</span></div>
+            <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:5432</span></div>
+          </div>
+          <div class="col-act">
+            <span class="proc-time proc-idle-label">idle 3h</span>
+            <button class="stop-btn" data-state="idle">⏻</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- bringr-feature-courier -->
+      <div class="wt-section" data-wt="bringr-feature-courier">
+        <div class="wt-header">
+          <span class="wt-chevron">▾</span>
+          <span class="wt-name">bringr-feature-courier</span>
+          <span class="wt-branch-icon">⎇</span>
+          <span class="wt-branch">feat/courier-ui</span>
+          <span class="wt-count">2</span>
+        </div>
+        <div class="hairline"></div>
+
+        <div class="proc-row" data-uptime-text="32m">
+          <div class="col-id">
+            <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">NX</span></div>
+            <span class="proc-pid">PID 51044</span>
+          </div>
+          <div class="col-meter">
+            <span class="proc-cpu" data-cpu="88">88%</span>
+            <div class="cpu-bar-track"><div class="cpu-bar-fill hot" style="width:88%"></div></div>
+          </div>
+          <div class="col-res">
+            <div class="res-line"><span class="res-label">MEM</span><span class="res-value">1.8 GB</span></div>
+            <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:4201</span></div>
+          </div>
+          <div class="col-act">
+            <span class="proc-time">32m</span>
+            <button class="stop-btn" data-state="idle">⏻</button>
+          </div>
+        </div>
+
+        <div class="proc-row" data-uptime-text="32m" data-seed-active-ago="180">
+          <div class="col-id">
+            <div class="proc-head"><span class="proc-dot recent"></span><span class="proc-name">Node</span></div>
+            <span class="proc-pid">PID 51082</span>
+          </div>
+          <div class="col-meter">
+            <span class="proc-cpu" data-cpu="0">0%</span>
+            <div class="cpu-bar-track"><div class="cpu-bar-fill" style="width:0%"></div></div>
+          </div>
+          <div class="col-res">
+            <div class="res-line"><span class="res-label">MEM</span><span class="res-value">142 MB</span></div>
+            <div class="res-line"><span class="res-label">PORT</span><span class="res-value">—</span></div>
+          </div>
+          <div class="col-act">
+            <span class="proc-time">32m</span>
+            <button class="stop-btn" data-state="idle">⏻</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- utilityprofit-web -->
+      <div class="wt-section" data-wt="utilityprofit-web">
+        <div class="wt-header">
+          <span class="wt-chevron">▾</span>
+          <span class="wt-name">utilityprofit-web</span>
+          <span class="wt-branch-icon">⎇</span>
+          <span class="wt-branch">main</span>
+          <span class="wt-count">1</span>
+        </div>
+        <div class="hairline"></div>
+
+        <div class="proc-row" data-uptime-text="1h">
+          <div class="col-id">
+            <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">Next</span></div>
+            <span class="proc-pid">PID 22041</span>
+          </div>
+          <div class="col-meter">
+            <span class="proc-cpu" data-cpu="12">12%</span>
+            <div class="cpu-bar-track"><div class="cpu-bar-fill" style="width:12%"></div></div>
+          </div>
+          <div class="col-res">
+            <div class="res-line"><span class="res-label">MEM</span><span class="res-value">612 MB</span></div>
+            <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:3001</span></div>
+          </div>
+          <div class="col-act">
+            <span class="proc-time">1h</span>
+            <button class="stop-btn" data-state="idle">⏻</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="all-gone" id="allGone">
+        All quiet.
+        <small id="resetBtn">↺ RESET PROCESSES</small>
+      </div>
+
+      <div class="hairline" style="margin: 8px 0 4px"></div>
+      <div class="po-footer">
+        <button class="f-btn">Preferences</button>
+        <button class="f-btn">Open Config</button>
+        <button class="f-btn">Quit</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Theme toggle
+    const themeButtons = document.querySelectorAll('[data-theme-set]');
+    themeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.themeSet;
+        document.body.dataset.theme = theme;
+        themeButtons.forEach(b => b.classList.toggle('active', b === btn));
+      });
+    });
+
+    // Activity + CPU simulation.
+    // In the real app, RECENT_WINDOW defaults to 5 minutes. Compressed here for demo.
+    const RECENT_WINDOW_MS = 15_000;
+    const ACTIVE_THRESHOLD = 1.0;
+    const rowState = new Map();
+
+    document.querySelectorAll('.proc-row').forEach(row => {
+      const cpuEl = row.querySelector('.proc-cpu');
+      if (!cpuEl) return;
+      const base = Number(cpuEl.dataset.cpu);
+      const seedIdleSec = Number(row.dataset.seedIdle || 0);
+      const seedActiveAgoSec = Number(row.dataset.seedActiveAgo || 0);
+
+      let lastActive;
+      if (seedIdleSec > 0) {
+        // Demo: seed "lastActive" further back than the recent window — shows as idle immediately.
+        lastActive = performance.now() - (RECENT_WINDOW_MS + 2000);
+      } else if (seedActiveAgoSec > 0) {
+        // Seeded recent: within window but will slip to idle in a few seconds.
+        lastActive = performance.now() - Math.min(seedActiveAgoSec * 1000, RECENT_WINDOW_MS * 0.7);
+      } else {
+        lastActive = performance.now();
+      }
+      rowState.set(row, { base, lastActive, seedIdleSec, phase: Math.random() * Math.PI * 2 });
+    });
+
+    function fmtDuration(sec) {
+      if (sec < 60) return `${Math.floor(sec)}s`;
+      if (sec < 3600) return `${Math.floor(sec / 60)}m`;
+      if (sec < 86400) return `${Math.floor(sec / 3600)}h`;
+      return `${Math.floor(sec / 86400)}d`;
+    }
+
+    function step() {
+      const now = performance.now();
+      document.querySelectorAll('.proc-row').forEach(row => {
+        if (row.dataset.anim === 'exit') return;
+        const s = rowState.get(row);
+        if (!s) return;
+
+        const cpuEl = row.querySelector('.proc-cpu');
+        const fill  = row.querySelector('.cpu-bar-fill');
+        const timeEl = row.querySelector('.proc-time');
+        const dot   = row.querySelector('.proc-dot');
+
+        // Simulate CPU. Idle-seeded processes stay near zero; others oscillate around base.
+        s.phase += 0.35 + Math.random() * 0.15;
+        let cpu;
+        if (s.seedIdleSec > 0) {
+          cpu = Math.random() * 0.4; // essentially zero
+        } else {
+          const jitter = Math.max(2, s.base * 0.28);
+          cpu = Math.max(0, Math.min(100, s.base + Math.sin(s.phase) * jitter + (Math.random() - 0.5) * 2));
+        }
+        cpuEl.textContent = `${Math.round(cpu)}%`;
+        fill.style.width = `${cpu}%`;
+        fill.classList.toggle('hot', cpu >= 80);
+
+        // Activity state resolution
+        const wasActive = dot.classList.contains('active');
+        if (cpu > ACTIVE_THRESHOLD) {
+          s.lastActive = now;
+        }
+        const sinceActive = now - s.lastActive;
+        let dotState;
+        if (cpu > ACTIVE_THRESHOLD)        dotState = 'active';
+        else if (sinceActive < RECENT_WINDOW_MS) dotState = 'recent';
+        else                                dotState = 'idle';
+
+        if (dotState === 'active' && !wasActive) {
+          dot.classList.add('bump');
+          setTimeout(() => dot.classList.remove('bump'), 180);
+        }
+        dot.classList.remove('active', 'recent', 'idle');
+        dot.classList.add(dotState);
+
+        row.classList.toggle('idle', dotState === 'idle');
+
+        if (dotState === 'idle') {
+          const displaySec = Math.floor(sinceActive / 1000) + (s.seedIdleSec || 0);
+          timeEl.textContent = `idle ${fmtDuration(displaySec)}`;
+          timeEl.classList.add('proc-idle-label');
+        } else {
+          timeEl.textContent = row.dataset.uptimeText || '';
+          timeEl.classList.remove('proc-idle-label');
+        }
+      });
+      setTimeout(step, 400);
+    }
+    step();
+
+    // Stop button state machine
+    document.querySelectorAll('.stop-btn').forEach(btn => {
+      let timer = null;
+      btn.addEventListener('click', () => {
+        const state = btn.dataset.state;
+        const row = btn.closest('.proc-row');
+
+        if (state === 'idle') {
+          btn.dataset.state = 'terminating';
+          btn.innerHTML = '◻︎<span class="arc"></span>';
+
+          timer = setTimeout(() => {
+            // Simulate: 70% of the time process exits gracefully during grace.
+            const graceful = Math.random() < 0.7;
+            if (graceful) {
+              doneAndRemove(btn, row, 'done');
+            } else {
+              doneAndRemove(btn, row, 'killing');
+            }
+          }, 3000);
+          btn._killTimer = timer;
+        } else if (state === 'terminating') {
+          // Fast-path: immediate SIGKILL
+          if (btn._killTimer) clearTimeout(btn._killTimer);
+          doneAndRemove(btn, row, 'killing');
+        }
+      });
+    });
+
+    function doneAndRemove(btn, row, endState) {
+      btn.dataset.state = endState;
+      btn.innerHTML = endState === 'killing' ? '✕' : '✓';
+      if (endState === 'done') row.dataset.anim = 'success';
+      setTimeout(() => {
+        row.dataset.anim = 'exit';
+        setTimeout(updateCounts, 350);
+      }, endState === 'done' ? 260 : 200);
+    }
+
+    const allGoneEl = document.getElementById('allGone');
+    const resetBtn  = document.getElementById('resetBtn');
+    const statsEl   = document.getElementById('stats');
+    const originalHTML = allGoneEl.parentElement.innerHTML;
+    const originalRows = Array.from(document.querySelectorAll('.proc-row')).map(r => r.outerHTML);
+    const originalSections = Array.from(document.querySelectorAll('.wt-section')).map(s => s.outerHTML);
+
+    function updateCounts() {
+      const rows = document.querySelectorAll('.proc-row:not([data-anim="exit"])');
+      const sections = Array.from(document.querySelectorAll('.wt-section')).filter(s =>
+        s.querySelectorAll('.proc-row:not([data-anim="exit"])').length > 0
+      );
+      statsEl.textContent = `${rows.length} PROC · ${sections.length} WT`;
+
+      // Update each section's count badge
+      document.querySelectorAll('.wt-section').forEach(sec => {
+        const count = sec.querySelectorAll('.proc-row:not([data-anim="exit"])').length;
+        const badge = sec.querySelector('.wt-count');
+        if (badge) badge.textContent = String(count);
+        sec.style.display = count === 0 ? 'none' : '';
+      });
+
+      if (rows.length === 0) allGoneEl.style.display = 'block';
+    }
+
+    resetBtn.addEventListener('click', () => {
+      location.reload();
+    });
+  </script>
+</body>
+</html>

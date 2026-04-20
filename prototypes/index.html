@@ -1,0 +1,1752 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Procbar — Visual Prototype · FIG 01–10</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* Dark palette — matches spec §8.2 */
+      --d-bg:        #0E0E10;
+      --d-surface:   #16161A;
+      --d-hairline:  rgba(255,255,255,0.10);
+      --d-text-1:    #F2F2F5;
+      --d-text-2:    #8A8A94;
+      --d-text-3:    #5C5C65;
+      --d-accent:    #FFB020;
+      --d-accent-bg: rgba(255,176,32,0.15);
+      --d-warning:   #FF5B49;
+      --d-success:   #4FD97C;
+
+      /* Light palette */
+      --l-bg:        #FAFAF7;
+      --l-surface:   #FFFFFF;
+      --l-hairline:  rgba(0,0,0,0.10);
+      --l-text-1:    #131316;
+      --l-text-2:    #5C5C65;
+      --l-text-3:    #9A9AA0;
+      --l-accent:    #C9820A;
+      --l-accent-bg: rgba(201,130,10,0.15);
+      --l-warning:   #C7341E;
+      --l-success:   #2F8C4C;
+
+      /* Showcase chrome */
+      --sc-bg:         #050506;
+      --sc-surface:    #0B0B0D;
+      --sc-hairline:   rgba(255,255,255,0.08);
+      --sc-text-1:     #E8E8EB;
+      --sc-text-2:     #7A7A83;
+      --sc-text-3:     #3C3C42;
+      --sc-accent:     #FFB020;
+
+      --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      --native-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', sans-serif;
+      --native-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--sc-bg);
+      color: var(--sc-text-1);
+      font-family: var(--mono);
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        repeating-linear-gradient(
+          to right,
+          transparent 0, transparent 79px,
+          rgba(255,255,255,0.02) 79px, rgba(255,255,255,0.02) 80px
+        );
+    }
+
+    .tick {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--sc-text-2);
+      text-transform: uppercase;
+    }
+
+    /* ---------- page frame ---------- */
+    .frame {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 56px 120px;
+    }
+    .masthead {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: end;
+      gap: 40px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--sc-hairline);
+    }
+    .wordmark {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 28px;
+      letter-spacing: 0.02em;
+      color: var(--sc-text-1);
+      line-height: 1;
+    }
+    .wordmark .slash { color: var(--sc-accent); padding: 0 6px; }
+    .tagline {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--sc-text-2);
+      padding-bottom: 4px;
+    }
+    .meta-block {
+      text-align: right;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: var(--sc-text-2);
+      text-transform: uppercase;
+      line-height: 1.7;
+    }
+    .meta-block .v { color: var(--sc-text-1); }
+
+    .intro {
+      margin-top: 40px;
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 48px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid var(--sc-hairline);
+    }
+    .intro .label { color: var(--sc-text-2); text-transform: uppercase; letter-spacing: 0.16em; font-size: 10px; }
+    .intro p {
+      margin: 0;
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--sc-text-1);
+      max-width: 62ch;
+    }
+    .intro p + p { margin-top: 14px; }
+    .intro strong { color: var(--sc-accent); font-weight: 500; }
+
+    /* ---------- figure frame ---------- */
+    .fig {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 48px;
+      padding: 56px 0;
+      border-bottom: 1px solid var(--sc-hairline);
+    }
+    .fig .meta {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+    }
+    .fig-code {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: var(--sc-accent);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .fig-title {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--sc-text-1);
+      line-height: 1.3;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .fig-desc {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--sc-text-2);
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+    .fig-body {}
+
+    /* ---------- stage: displays popover against a Mac-like backdrop ---------- */
+    .stage {
+      background: linear-gradient(135deg, #1a1a1e 0%, #0c0c0e 100%);
+      border: 1px solid var(--sc-hairline);
+      border-radius: 8px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 20px;
+      position: relative;
+    }
+    .stage[data-mode="light"] {
+      background: linear-gradient(135deg, #e8e8e4 0%, #f6f6f1 100%);
+    }
+    .stage::before {
+      content: attr(data-stage-label);
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--sc-text-2);
+      text-transform: uppercase;
+    }
+    /* simulated menu bar */
+    .menu-bar {
+      height: 26px;
+      width: 100%;
+      background: rgba(15,15,17,0.82);
+      backdrop-filter: blur(12px);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 14px;
+      font-family: var(--native-sans);
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .stage[data-mode="light"] .menu-bar {
+      background: rgba(250,250,247,0.88);
+      color: rgba(19,19,22,0.9);
+      border-color: rgba(0,0,0,0.08);
+    }
+    .menu-bar .apple-logo {
+      display: inline-block; width: 12px; height: 12px;
+      background: currentColor;
+      -webkit-mask-image: radial-gradient(circle at 50% 40%, black 35%, transparent 36%);
+              mask-image: radial-gradient(circle at 50% 40%, black 35%, transparent 36%);
+      opacity: 0.9;
+    }
+    .menu-bar .spacer { flex: 1; }
+    .menu-bar .mb-item {
+      display: inline-flex; align-items: center;
+      font-size: 11px; opacity: 0.85;
+      font-weight: 500;
+    }
+    .menu-bar .mb-item.procbar-slot {
+      opacity: 1;
+    }
+
+    /* ---------- Menu bar icon (template glyph) ---------- */
+    .mb-icon {
+      width: 18px; height: 18px;
+      display: inline-block;
+      position: relative;
+    }
+    .mb-icon .bar {
+      position: absolute; left: 2px; height: 2px;
+      background: currentColor;
+      border-radius: 1px;
+    }
+    .mb-icon .bar:nth-child(1) { top: 4px;  width: 11px; }
+    .mb-icon .bar:nth-child(2) { top: 8px;  width: 7px;  }
+    .mb-icon .bar:nth-child(3) { top: 12px; width: 9px;  }
+    .mb-icon[data-state="idle"]   { opacity: 0.4; }
+    .mb-icon[data-state="active"] { opacity: 1; }
+    .mb-icon[data-state="error"]::after {
+      content: ""; position: absolute; right: 0; bottom: 0;
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--d-accent);
+      box-shadow: 0 0 4px rgba(255,176,32,0.6);
+    }
+    .mb-icon.big { transform: scale(4); transform-origin: top left; margin: 4px 60px 52px 4px; color: var(--sc-text-1); }
+
+    /* ---------- Popover (the app) ---------- */
+    .popover {
+      width: 340px;
+      border-radius: 10px;
+      font-family: var(--native-sans);
+      background: var(--d-bg);
+      color: var(--d-text-1);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04),
+        0 12px 30px rgba(0,0,0,0.5),
+        0 2px 6px rgba(0,0,0,0.4);
+      padding: 10px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .popover[data-theme="light"] {
+      background: var(--l-bg);
+      color: var(--l-text-1);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.06),
+        0 12px 30px rgba(0,0,0,0.18),
+        0 2px 6px rgba(0,0,0,0.12);
+    }
+    /* floating pointer above popover (simulates the arrow beneath menu bar) */
+    .popover-wrap {
+      position: relative;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .popover-arrow {
+      width: 16px; height: 8px;
+      background: var(--d-bg);
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      margin-bottom: -1px;
+      border: 0;
+    }
+    .popover-wrap[data-theme="light"] .popover-arrow { background: var(--l-bg); }
+
+    /* popover header */
+    .po-header {
+      display: flex; align-items: center; gap: 6px;
+      height: 28px;
+    }
+    .po-header .title {
+      font-size: 13px; font-weight: 600; letter-spacing: -0.3px;
+      color: var(--d-text-1);
+    }
+    .popover[data-theme="light"] .po-header .title { color: var(--l-text-1); }
+    .po-header .stats {
+      margin-left: auto;
+      font-family: var(--native-mono);
+      font-size: 9px; letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+      color: var(--d-text-3);
+    }
+    .popover[data-theme="light"] .po-header .stats { color: var(--l-text-3); }
+    .po-header .mb-icon {
+      color: var(--d-text-1);
+      width: 14px; height: 14px;
+    }
+    .popover[data-theme="light"] .po-header .mb-icon { color: var(--l-text-1); }
+    .po-header .mb-icon .bar { height: 2px; }
+    .po-header .mb-icon .bar:nth-child(1) { top: 3px;  width: 9px; }
+    .po-header .mb-icon .bar:nth-child(2) { top: 6px;  width: 5px; }
+    .po-header .mb-icon .bar:nth-child(3) { top: 9px;  width: 7px; }
+
+    .hairline {
+      height: 1px; background: var(--d-hairline);
+    }
+    .popover[data-theme="light"] .hairline { background: var(--l-hairline); }
+
+    /* section header (a worktree) */
+    .wt-section { margin-top: 0; }
+    .wt-section + .wt-section { margin-top: 12px; }
+
+    .wt-header {
+      display: flex; align-items: center; gap: 6px;
+      height: 26px;
+      cursor: default;
+    }
+    .wt-chevron {
+      width: 10px; height: 10px;
+      color: var(--d-text-3);
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .popover[data-theme="light"] .wt-chevron { color: var(--l-text-3); }
+    .wt-name {
+      font-family: var(--native-sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--d-text-1);
+    }
+    .popover[data-theme="light"] .wt-name { color: var(--l-text-1); }
+    .wt-branch-icon { color: var(--d-text-3); font-size: 11px; margin-left: 4px; }
+    .popover[data-theme="light"] .wt-branch-icon { color: var(--l-text-3); }
+    .wt-branch {
+      font-family: var(--native-mono);
+      font-size: 11px;
+      color: var(--d-text-3);
+      letter-spacing: 0.2px;
+    }
+    .popover[data-theme="light"] .wt-branch { color: var(--l-text-3); }
+    .wt-count {
+      margin-left: auto;
+      font-family: var(--native-mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--d-accent);
+      background: var(--d-accent-bg);
+      padding: 2px 7px;
+      border-radius: 999px;
+      line-height: 1;
+      min-width: 20px;
+      text-align: center;
+    }
+    .popover[data-theme="light"] .wt-count { color: var(--l-accent); background: var(--l-accent-bg); }
+
+    /* process row */
+    .proc-row {
+      display: grid;
+      grid-template-columns: 110px 80px 88px 1fr;
+      align-items: center;
+      gap: 8px;
+      height: 34px;
+      padding-top: 2px;
+    }
+
+    .proc-name {
+      font-family: var(--native-sans);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--d-text-1);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .popover[data-theme="light"] .proc-name { color: var(--l-text-1); }
+    .proc-idle .proc-name { color: var(--d-text-2); }
+    .popover[data-theme="light"] .proc-idle .proc-name { color: var(--l-text-2); }
+
+    /* activity dot */
+    .proc-head { display: flex; align-items: center; gap: 6px; }
+    .proc-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .proc-dot.active { background: var(--d-success); box-shadow: 0 0 4px rgba(79,217,124,0.5); animation: dot-bump 3.5s ease-in-out infinite; }
+    .proc-dot.recent { background: var(--d-accent); }
+    .proc-dot.idle   { background: var(--d-text-3); }
+    .popover[data-theme="light"] .proc-dot.active { background: var(--l-success); box-shadow: 0 0 4px rgba(47,140,76,0.45); }
+    .popover[data-theme="light"] .proc-dot.recent { background: var(--l-accent); }
+    .popover[data-theme="light"] .proc-dot.idle   { background: var(--l-text-3); }
+
+    @keyframes dot-bump {
+      0%, 92%, 100% { transform: scale(1); }
+      94%            { transform: scale(1.35); }
+    }
+
+    /* idle uptime label */
+    .proc-idle-label {
+      font-family: var(--native-mono); font-size: 10px;
+      color: var(--d-accent);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+    .popover[data-theme="light"] .proc-idle-label { color: var(--l-accent); }
+
+    /* dim idle rows' cpu number */
+    .proc-idle .proc-cpu { color: var(--d-text-3); }
+    .popover[data-theme="light"] .proc-idle .proc-cpu { color: var(--l-text-3); }
+    .proc-pid {
+      font-family: var(--native-mono);
+      font-size: 10px;
+      color: var(--d-text-3);
+      font-variant-numeric: tabular-nums;
+      margin-top: 1px;
+    }
+    .popover[data-theme="light"] .proc-pid { color: var(--l-text-3); }
+
+    /* identity column */
+    .col-id { display: flex; flex-direction: column; }
+    /* meter column */
+    .col-meter { display: flex; flex-direction: column; }
+    .proc-cpu {
+      font-family: var(--native-mono);
+      font-size: 11px;
+      color: var(--d-text-1);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+      margin-bottom: 3px;
+    }
+    .popover[data-theme="light"] .proc-cpu { color: var(--l-text-1); }
+    .cpu-bar-track {
+      width: 80px; height: 2px;
+      background: var(--d-hairline);
+      border-radius: 1px;
+      overflow: hidden;
+      position: relative;
+    }
+    .popover[data-theme="light"] .cpu-bar-track { background: var(--l-hairline); }
+    .cpu-bar-fill {
+      height: 100%;
+      background: var(--d-accent);
+      border-radius: 1px;
+      transform-origin: left center;
+      transition: width 0.4s cubic-bezier(.25,.8,.3,1);
+    }
+    .cpu-bar-fill.hot { background: var(--d-warning); }
+    .popover[data-theme="light"] .cpu-bar-fill { background: var(--l-accent); }
+    .popover[data-theme="light"] .cpu-bar-fill.hot { background: var(--l-warning); }
+
+    /* resource column */
+    .col-res { display: flex; flex-direction: column; gap: 2px; }
+    .res-line { display: flex; align-items: center; gap: 5px; }
+    .res-label {
+      font-family: var(--native-sans);
+      font-size: 9px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--d-text-3);
+    }
+    .popover[data-theme="light"] .res-label { color: var(--l-text-3); }
+    .res-value {
+      font-family: var(--native-mono);
+      font-size: 11px;
+      color: var(--d-text-1);
+      font-variant-numeric: tabular-nums;
+    }
+    .popover[data-theme="light"] .res-value { color: var(--l-text-1); }
+
+    /* action column */
+    .col-act { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .proc-uptime {
+      font-family: var(--native-mono);
+      font-size: 10px;
+      color: var(--d-text-3);
+      font-variant-numeric: tabular-nums;
+    }
+    .popover[data-theme="light"] .proc-uptime { color: var(--l-text-3); }
+
+    .stop-btn {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      border: 1px solid var(--d-hairline);
+      background: transparent;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: var(--native-sans);
+      font-size: 11px; font-weight: 600;
+      color: var(--d-text-2);
+      cursor: pointer;
+      position: relative;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .popover[data-theme="light"] .stop-btn { border-color: var(--l-hairline); color: var(--l-text-2); }
+    .stop-btn:hover { background: var(--d-warning); color: #fff; border-color: var(--d-warning); }
+    .popover[data-theme="light"] .stop-btn:hover { background: var(--l-warning); color: #fff; border-color: var(--l-warning); }
+
+    .stop-btn[data-state="terminating"] {
+      border-color: var(--d-accent);
+      color: var(--d-accent);
+    }
+    .stop-btn[data-state="terminating"] .arc {
+      position: absolute; inset: -2px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      border-top-color: var(--d-accent);
+      animation: spin 1.2s linear infinite;
+      opacity: 0.85;
+    }
+    .stop-btn[data-state="killing"] { background: var(--d-warning); color: #fff; border-color: var(--d-warning); }
+    .stop-btn[data-state="done"]    { background: color-mix(in srgb, var(--d-success) 24%, transparent); border-color: var(--d-success); color: var(--d-success); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* footer */
+    .po-footer {
+      display: flex; gap: 16px; align-items: center;
+      height: 30px;
+      padding-top: 2px;
+    }
+    .po-footer .f-btn {
+      font-family: var(--native-sans);
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--d-text-2);
+      background: none; border: 0; padding: 0;
+      cursor: pointer;
+      position: relative;
+    }
+    .popover[data-theme="light"] .po-footer .f-btn { color: var(--l-text-2); }
+    .po-footer .f-btn:hover { color: var(--d-text-1); text-decoration: underline; text-underline-offset: 3px; }
+    .popover[data-theme="light"] .po-footer .f-btn:hover { color: var(--l-text-1); }
+
+    /* empty state */
+    .empty-state {
+      text-align: center;
+      padding: 24px 0 20px;
+      font-family: var(--native-sans);
+      font-size: 13px;
+      color: var(--d-text-2);
+      letter-spacing: 0.01em;
+    }
+    .popover[data-theme="light"] .empty-state { color: var(--l-text-2); }
+    .empty-state-sub {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--native-mono);
+      font-size: 10px;
+      color: var(--d-text-3);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .popover[data-theme="light"] .empty-state-sub { color: var(--l-text-3); }
+
+    /* config error pill */
+    .config-error {
+      background: var(--d-warning);
+      color: #fff;
+      font-family: var(--native-sans);
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin: 4px 0 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .popover[data-theme="light"] .config-error { background: var(--l-warning); }
+    .config-error::before {
+      content: "!";
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 12px; height: 12px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      font-size: 10px; font-weight: 700;
+    }
+
+    /* ---------- FIG 01 grid of icon states ---------- */
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .icon-cell {
+      border: 1px solid var(--sc-hairline);
+      border-radius: 6px;
+      padding: 20px;
+      display: flex; flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      background: var(--sc-surface);
+    }
+    .icon-cell .menu-bar { width: 100%; }
+    .icon-cell .mb-icon { color: rgba(255,255,255,0.85); }
+    .icon-cell .legend {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      text-align: center;
+    }
+    .legend .name {
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--sc-text-1);
+    }
+    .legend .desc {
+      font-family: var(--sans); font-size: 12px;
+      color: var(--sc-text-2);
+      line-height: 1.4;
+      max-width: 22ch;
+    }
+
+    /* ---------- FIG 06 stop button states ---------- */
+    .sb-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .sb-cell {
+      background: var(--d-bg);
+      border: 1px solid var(--sc-hairline);
+      border-radius: 8px;
+      padding: 28px 20px 20px;
+      display: flex; flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .sb-cell .note {
+      font-family: var(--sans); font-size: 12px;
+      color: var(--sc-text-2);
+      text-align: center;
+      line-height: 1.4;
+    }
+    .sb-cell .code {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--sc-accent);
+    }
+
+    /* ---------- FIG 07 settings window ---------- */
+    .win {
+      width: 600px;
+      border-radius: 10px;
+      background: var(--d-bg);
+      color: var(--d-text-1);
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.05),
+        0 22px 40px rgba(0,0,0,0.6);
+      font-family: var(--native-sans);
+    }
+    .win-titlebar {
+      display: flex; align-items: center;
+      height: 32px;
+      padding: 0 12px;
+      background: var(--d-surface);
+      border-bottom: 1px solid var(--d-hairline);
+      gap: 8px;
+    }
+    .win-dots { display: inline-flex; gap: 8px; }
+    .win-dot { width: 12px; height: 12px; border-radius: 50%; background: #3a3a40; }
+    .win-dot.close { background: #FF5F57; }
+    .win-dot.min   { background: #FEBC2E; }
+    .win-dot.max   { background: #28C840; }
+    .win-title {
+      font-size: 12px; font-weight: 500;
+      color: var(--d-text-2);
+      margin-left: 14px;
+    }
+    .win-tabs {
+      display: flex; gap: 2px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--d-hairline);
+      background: color-mix(in srgb, var(--d-surface) 60%, transparent);
+    }
+    .win-tab {
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--d-text-2);
+      cursor: default;
+      border-bottom: 2px solid transparent;
+    }
+    .win-tab.active {
+      color: var(--d-text-1);
+      border-bottom-color: var(--d-accent);
+    }
+    .win-body { padding: 22px 22px 26px; }
+    .win-row { display: grid; grid-template-columns: 160px 1fr; gap: 16px; align-items: center; padding: 10px 0; }
+    .win-label { font-size: 12px; color: var(--d-text-2); }
+    .win-field {
+      background: var(--d-surface);
+      border: 1px solid var(--d-hairline);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-family: var(--native-mono);
+      font-size: 12px;
+      color: var(--d-text-1);
+      width: 100%;
+    }
+    .win-toggle {
+      display: inline-flex; align-items: center;
+      gap: 10px;
+    }
+    .toggle {
+      width: 34px; height: 20px;
+      background: var(--d-surface);
+      border: 1px solid var(--d-hairline);
+      border-radius: 999px;
+      position: relative;
+      display: inline-block;
+    }
+    .toggle::after {
+      content: "";
+      position: absolute; top: 2px; left: 2px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--d-text-2);
+      transition: transform 0.2s;
+    }
+    .toggle.on { background: var(--d-accent); border-color: var(--d-accent); }
+    .toggle.on::after { transform: translateX(14px); background: #0e0e10; }
+    .win-section {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--d-hairline);
+    }
+    .pattern-row {
+      display: grid;
+      grid-template-columns: 110px 160px 120px 26px;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 0;
+    }
+    .pattern-row .seg {
+      display: inline-flex;
+      background: var(--d-surface);
+      border: 1px solid var(--d-hairline);
+      border-radius: 6px;
+      padding: 2px;
+      font-size: 11px;
+    }
+    .pattern-row .seg span {
+      padding: 3px 10px;
+      border-radius: 4px;
+      color: var(--d-text-2);
+      cursor: default;
+    }
+    .pattern-row .seg span.active {
+      background: var(--d-accent);
+      color: #0e0e10;
+      font-weight: 600;
+    }
+    .pattern-row .remove {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 1px solid var(--d-hairline);
+      color: var(--d-text-3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; line-height: 1; font-weight: 400;
+    }
+    .add-btn {
+      font-family: var(--native-sans);
+      font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--d-accent);
+      background: none; border: 0; padding: 8px 0 0;
+      cursor: pointer;
+    }
+
+    /* ---------- palette & type ---------- */
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .palette-card {
+      background: var(--sc-surface);
+      border: 1px solid var(--sc-hairline);
+      border-radius: 6px;
+      padding: 14px;
+    }
+    .palette-card h4 {
+      margin: 0 0 10px;
+      font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--sc-accent);
+    }
+    .swatch {
+      display: grid;
+      grid-template-columns: 20px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 0;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--sc-text-2);
+      border-bottom: 1px solid var(--sc-hairline);
+    }
+    .swatch:last-child { border-bottom: 0; }
+    .swatch .chip {
+      width: 18px; height: 18px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .swatch .name { color: var(--sc-text-1); }
+    .swatch .hex { font-variant-numeric: tabular-nums; }
+
+    .type-grid { display: grid; grid-template-columns: 260px 1fr; gap: 36px; align-items: start; }
+    .type-row { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--sc-hairline); align-items: baseline; }
+    .type-row:last-child { border-bottom: 0; }
+    .type-meta { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-text-2); line-height: 1.7; }
+    .type-sample {}
+
+    /* ---------- misc ---------- */
+    .two-col { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .caption {
+      margin-top: 18px;
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--sc-text-2);
+    }
+    .caption .dot { color: var(--sc-accent); margin-right: 6px; }
+
+    footer.pg-foot {
+      margin-top: 48px;
+      padding-top: 28px;
+      border-top: 1px solid var(--sc-hairline);
+      display: flex; justify-content: space-between;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--sc-text-2);
+    }
+
+    /* ---------- breathing animation on active CPU bars ---------- */
+    @keyframes pulse-width {
+      0%, 100% { width: var(--to); }
+      50%      { width: calc(var(--to) + 4%); }
+    }
+    .cpu-bar-fill[data-animate="on"] {
+      animation: pulse-width 4s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+
+    <!-- ================= MASTHEAD ================= -->
+    <header class="masthead">
+      <div class="wordmark">PROCBAR<span class="slash">/</span>0.1.0</div>
+      <div class="tagline">Instrument panel for dev processes · visual prototype</div>
+      <div class="meta-block">
+        DATE · <span class="v">2026-04-17</span><br/>
+        REF &nbsp;· <span class="v">specs/2026-04-17-procbar-design.md</span><br/>
+        PLATFORM · <span class="v">macOS 13+ · SwiftUI</span>
+      </div>
+    </header>
+
+    <section class="intro">
+      <div class="label">Abstract</div>
+      <div>
+        <p>
+          Procbar groups and kills local dev processes by git worktree. The visual direction is
+          <strong>"instrument panel"</strong>: quiet monochrome, a single amber accent that emerges as processes work,
+          hairline structure, tabular mono numerics.
+        </p>
+        <p>
+          This document renders every surface the v1 app shows: the menu bar icon, the popover in dark and light,
+          its empty and error states, the stop-button state machine, and the settings window. The signature
+          element to watch is the 2px amber CPU bar under each process name — the thing you'll remember.
+        </p>
+      </div>
+    </section>
+
+    <!-- ================= FIG 01: MENU BAR ICON ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 01</span>
+        <h2 class="fig-title">Menu bar icon · three states</h2>
+        <p class="fig-desc">
+          A custom 18×18pt template image — three horizontal bars of varying length, reads as an equalizer
+          or a level meter. Drawn with system tint so it inverts correctly in both menu bar themes.
+          No colored status dot on the icon itself; activity is conveyed by opacity.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div class="icon-grid">
+          <div class="icon-cell">
+            <div class="menu-bar">
+              <div class="spacer"></div>
+              <span class="mb-item">Wi-Fi</span>
+              <span class="mb-item">Battery</span>
+              <span class="mb-item procbar-slot">
+                <span class="mb-icon" data-state="active" title="Procbar">
+                  <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </span>
+              </span>
+              <span class="mb-item">Time</span>
+            </div>
+            <span class="mb-icon big" data-state="active">
+              <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+            </span>
+            <div class="legend">
+              <span class="name">ACTIVE</span>
+              <span class="desc">Full opacity — one or more processes currently tracked.</span>
+            </div>
+          </div>
+
+          <div class="icon-cell">
+            <div class="menu-bar">
+              <div class="spacer"></div>
+              <span class="mb-item">Wi-Fi</span>
+              <span class="mb-item">Battery</span>
+              <span class="mb-item procbar-slot">
+                <span class="mb-icon" data-state="idle">
+                  <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </span>
+              </span>
+              <span class="mb-item">Time</span>
+            </div>
+            <span class="mb-icon big" data-state="idle">
+              <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+            </span>
+            <div class="legend">
+              <span class="name">IDLE</span>
+              <span class="desc">40% opacity — worktrees discovered, nothing matching running.</span>
+            </div>
+          </div>
+
+          <div class="icon-cell">
+            <div class="menu-bar">
+              <div class="spacer"></div>
+              <span class="mb-item">Wi-Fi</span>
+              <span class="mb-item">Battery</span>
+              <span class="mb-item procbar-slot">
+                <span class="mb-icon" data-state="error">
+                  <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </span>
+              </span>
+              <span class="mb-item">Time</span>
+            </div>
+            <span class="mb-icon big" data-state="error">
+              <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+            </span>
+            <div class="legend">
+              <span class="name">CONFIG ERROR</span>
+              <span class="desc">Small amber dot superimposed; config file didn't parse.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 02: POPOVER DARK ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 02</span>
+        <h2 class="fig-title">Popover · dark · active</h2>
+        <p class="fig-desc">
+          The default surface. 340pt wide, grouped by worktree. Each row packs identity, load meter,
+          resource detail, and an action button into 34pt. Numeric columns are SF Mono with tabular
+          figures so they align vertically across rows like flight instruments.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div class="stage" data-stage-label="STAGE · DARK DESKTOP">
+          <div class="menu-bar">
+            <span class="apple-logo"></span>
+            <span class="mb-item" style="font-weight:600">Xcode</span>
+            <span class="mb-item">File</span>
+            <span class="mb-item">Edit</span>
+            <span class="mb-item">View</span>
+            <div class="spacer"></div>
+            <span class="mb-item">
+              <span class="mb-icon" data-state="active" style="color:rgba(255,255,255,0.85)">
+                <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+              </span>
+            </span>
+            <span class="mb-item" style="font-family:var(--native-mono); font-size:11px">Thu 10:42</span>
+          </div>
+
+          <div class="popover-wrap">
+            <div class="popover-arrow"></div>
+            <div class="popover">
+              <div class="po-header">
+                <span class="mb-icon" data-state="active">
+                  <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </span>
+                <span class="title">Procbar</span>
+                <span class="stats">6 PROC · 3 WT</span>
+              </div>
+              <div class="hairline" style="margin: 4px 0 8px"></div>
+
+              <!-- worktree: bringr -->
+              <div class="wt-section">
+                <div class="wt-header">
+                  <span class="wt-chevron">▾</span>
+                  <span class="wt-name">bringr</span>
+                  <span class="wt-branch-icon">⎇</span>
+                  <span class="wt-branch">main</span>
+                  <span class="wt-count">3</span>
+                </div>
+                <div class="hairline"></div>
+
+                <div class="proc-row">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">NX</span></div>
+                    <span class="proc-pid">PID 48201</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">24%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:24%; width:24%" data-animate="on"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">412 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:4200</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-uptime">14m</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+
+                <div class="proc-row">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">Vite</span></div>
+                    <span class="proc-pid">PID 48322</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">9%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:9%; width:9%" data-animate="on"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">234 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:3000</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-uptime">12m</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+
+                <div class="proc-row proc-idle">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot idle"></span><span class="proc-name">Postgres</span></div>
+                    <span class="proc-pid">PID 04201</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">0%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:0%; width:0%"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">98 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:5432</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-idle-label">idle 3h</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- worktree: bringr-feature-courier -->
+              <div class="wt-section">
+                <div class="wt-header">
+                  <span class="wt-chevron">▾</span>
+                  <span class="wt-name">bringr-feature-courier</span>
+                  <span class="wt-branch-icon">⎇</span>
+                  <span class="wt-branch">feat/courier-ui</span>
+                  <span class="wt-count">2</span>
+                </div>
+                <div class="hairline"></div>
+
+                <div class="proc-row">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">NX</span></div>
+                    <span class="proc-pid">PID 51044</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">88%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill hot" style="--to:88%; width:88%" data-animate="on"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">1.8 GB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:4201</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-uptime">32m</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+
+                <div class="proc-row">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot recent"></span><span class="proc-name">Node</span></div>
+                    <span class="proc-pid">PID 51082</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">0%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:0%; width:0%"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">142 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">—</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-uptime">32m</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- worktree: utilityprofit-web -->
+              <div class="wt-section">
+                <div class="wt-header">
+                  <span class="wt-chevron">▾</span>
+                  <span class="wt-name">utilityprofit-web</span>
+                  <span class="wt-branch-icon">⎇</span>
+                  <span class="wt-branch">main</span>
+                  <span class="wt-count">1</span>
+                </div>
+                <div class="hairline"></div>
+
+                <div class="proc-row">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">Next</span></div>
+                    <span class="proc-pid">PID 22041</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">12%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:12%; width:12%" data-animate="on"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">612 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:3001</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-uptime">1h</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hairline" style="margin: 8px 0 4px"></div>
+              <div class="po-footer">
+                <button class="f-btn">Preferences</button>
+                <button class="f-btn">Open Config</button>
+                <button class="f-btn">Quit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption"><span class="dot">●</span>Signature element: 2px amber bars beneath each process name breathe with CPU load.</div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 03: POPOVER LIGHT ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 03</span>
+        <h2 class="fig-title">Popover · light · active</h2>
+        <p class="fig-desc">
+          Same information architecture as FIG 02. Warm paper background (not pure white) keeps the eye
+          comfortable. Accent amber shifts to a deeper tone for contrast.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div class="stage" data-mode="light" data-stage-label="STAGE · LIGHT DESKTOP">
+          <div class="menu-bar">
+            <span class="apple-logo"></span>
+            <span class="mb-item" style="font-weight:600">Xcode</span>
+            <span class="mb-item">File</span>
+            <span class="mb-item">Edit</span>
+            <div class="spacer"></div>
+            <span class="mb-item">
+              <span class="mb-icon" data-state="active" style="color:rgba(19,19,22,0.85)">
+                <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+              </span>
+            </span>
+            <span class="mb-item" style="font-family:var(--native-mono); font-size:11px">Thu 10:42</span>
+          </div>
+
+          <div class="popover-wrap" data-theme="light">
+            <div class="popover-arrow"></div>
+            <div class="popover" data-theme="light">
+              <div class="po-header">
+                <span class="mb-icon" data-state="active">
+                  <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </span>
+                <span class="title">Procbar</span>
+                <span class="stats">2 PROC · 1 WT</span>
+              </div>
+              <div class="hairline" style="margin: 4px 0 8px"></div>
+
+              <div class="wt-section">
+                <div class="wt-header">
+                  <span class="wt-chevron">▾</span>
+                  <span class="wt-name">bringr</span>
+                  <span class="wt-branch-icon">⎇</span>
+                  <span class="wt-branch">main</span>
+                  <span class="wt-count">2</span>
+                </div>
+                <div class="hairline"></div>
+
+                <div class="proc-row">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">Vite</span></div>
+                    <span class="proc-pid">PID 48322</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">16%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:16%; width:16%" data-animate="on"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">284 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:3000</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-uptime">22m</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+
+                <div class="proc-row proc-idle">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot idle"></span><span class="proc-name">Postgres</span></div>
+                    <span class="proc-pid">PID 04201</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">0%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:0%; width:0%"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">98 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:5432</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-idle-label">idle 5h</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hairline" style="margin: 8px 0 4px"></div>
+              <div class="po-footer">
+                <button class="f-btn">Preferences</button>
+                <button class="f-btn">Open Config</button>
+                <button class="f-btn">Quit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 04: EMPTY ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 04</span>
+        <h2 class="fig-title">Popover · empty · "all quiet"</h2>
+        <p class="fig-desc">
+          When worktrees are discovered but nothing is running. Terse copy by design — no illustration,
+          no onboarding tooltip, nothing to dismiss. You open, you read "all quiet", you close.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div class="two-col">
+          <div class="stage" data-stage-label="DARK">
+            <div class="popover-wrap">
+              <div class="popover-arrow"></div>
+              <div class="popover">
+                <div class="po-header">
+                  <span class="mb-icon" data-state="active">
+                    <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                  </span>
+                  <span class="title">Procbar</span>
+                  <span class="stats">0 PROC · 4 WT</span>
+                </div>
+                <div class="hairline" style="margin: 4px 0 8px"></div>
+                <div class="empty-state">
+                  All quiet.
+                  <span class="empty-state-sub">4 worktrees monitored · 0 processes matching</span>
+                </div>
+                <div class="hairline" style="margin: 8px 0 4px"></div>
+                <div class="po-footer">
+                  <button class="f-btn">Preferences</button>
+                  <button class="f-btn">Open Config</button>
+                  <button class="f-btn">Quit</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage" data-mode="light" data-stage-label="LIGHT">
+            <div class="popover-wrap" data-theme="light">
+              <div class="popover-arrow"></div>
+              <div class="popover" data-theme="light">
+                <div class="po-header">
+                  <span class="mb-icon" data-state="active">
+                    <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                  </span>
+                  <span class="title">Procbar</span>
+                  <span class="stats">0 PROC · 4 WT</span>
+                </div>
+                <div class="hairline" style="margin: 4px 0 8px"></div>
+                <div class="empty-state">
+                  All quiet.
+                  <span class="empty-state-sub">4 worktrees monitored · 0 processes matching</span>
+                </div>
+                <div class="hairline" style="margin: 8px 0 4px"></div>
+                <div class="po-footer">
+                  <button class="f-btn">Preferences</button>
+                  <button class="f-btn">Open Config</button>
+                  <button class="f-btn">Quit</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 05: ERROR ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 05</span>
+        <h2 class="fig-title">Popover · config error</h2>
+        <p class="fig-desc">
+          YAML failed to parse. A single pill above the list summarises the problem and is the only
+          thing clickable — it routes into the Settings window. The last-known-good config keeps running
+          underneath, so the existing process list still appears.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div class="stage" data-stage-label="STAGE · DARK">
+          <div class="popover-wrap">
+            <div class="popover-arrow"></div>
+            <div class="popover">
+              <div class="po-header">
+                <span class="mb-icon" data-state="error">
+                  <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </span>
+                <span class="title">Procbar</span>
+                <span class="stats">2 PROC · 3 WT · STALE</span>
+              </div>
+              <div class="hairline" style="margin: 4px 0 8px"></div>
+
+              <div class="config-error" title="Open Settings">
+                CONFIG ERROR — INVALID YAML AT LINE 14
+              </div>
+
+              <div class="wt-section">
+                <div class="wt-header">
+                  <span class="wt-chevron">▾</span>
+                  <span class="wt-name">bringr</span>
+                  <span class="wt-branch-icon">⎇</span>
+                  <span class="wt-branch">main</span>
+                  <span class="wt-count">2</span>
+                </div>
+                <div class="hairline"></div>
+
+                <div class="proc-row">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot active"></span><span class="proc-name">Vite</span></div>
+                    <span class="proc-pid">PID 48322</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">9%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:9%; width:9%" data-animate="on"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">234 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:3000</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-uptime">12m</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+
+                <div class="proc-row proc-idle">
+                  <div class="col-id">
+                    <div class="proc-head"><span class="proc-dot idle"></span><span class="proc-name">Postgres</span></div>
+                    <span class="proc-pid">PID 04201</span>
+                  </div>
+                  <div class="col-meter">
+                    <span class="proc-cpu">0%</span>
+                    <div class="cpu-bar-track"><div class="cpu-bar-fill" style="--to:0%; width:0%"></div></div>
+                  </div>
+                  <div class="col-res">
+                    <div class="res-line"><span class="res-label">MEM</span><span class="res-value">98 MB</span></div>
+                    <div class="res-line"><span class="res-label">PORT</span><span class="res-value">:5432</span></div>
+                  </div>
+                  <div class="col-act">
+                    <span class="proc-idle-label">idle 3h</span>
+                    <button class="stop-btn" data-state="idle">⏻</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hairline" style="margin: 8px 0 4px"></div>
+              <div class="po-footer">
+                <button class="f-btn">Preferences</button>
+                <button class="f-btn">Open Config</button>
+                <button class="f-btn">Quit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 06: STOP BUTTON ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 06</span>
+        <h2 class="fig-title">Stop button · state machine</h2>
+        <p class="fig-desc">
+          Single button, four resolved states. The amber arc during <code>terminating</code> is the 3-second
+          grace window; a second click during that window fast-paths to SIGKILL.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div class="sb-grid">
+          <div class="sb-cell">
+            <button class="stop-btn" data-state="idle" style="transform:scale(1.8)">⏻</button>
+            <div class="code">IDLE</div>
+            <div class="note">Resting. Hover fills warning-red. Click → SIGTERM to process tree.</div>
+          </div>
+          <div class="sb-cell">
+            <button class="stop-btn" data-state="terminating" style="transform:scale(1.8)">
+              ◻︎
+              <span class="arc"></span>
+            </button>
+            <div class="code">TERMINATING</div>
+            <div class="note">SIGTERM sent. Arc winds for 3s. Click again = immediate SIGKILL.</div>
+          </div>
+          <div class="sb-cell">
+            <button class="stop-btn" data-state="killing" style="transform:scale(1.8)">✕</button>
+            <div class="code">KILLING</div>
+            <div class="note">Grace expired (or fast-path hit). SIGKILL fires, red flash 120ms.</div>
+          </div>
+          <div class="sb-cell">
+            <button class="stop-btn" data-state="done" style="transform:scale(1.8)">✓</button>
+            <div class="code">DONE</div>
+            <div class="note">Process exited. Green tint 200ms before row collapses.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 07: SETTINGS ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 07</span>
+        <h2 class="fig-title">Settings · Patterns tab</h2>
+        <p class="fig-desc">
+          Writes to the same YAML file that the power-user edits by hand. Three tabs: General,
+          Worktrees, Patterns. Shown here: Patterns — the most frequently touched list.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div class="stage" data-stage-label="WINDOW · SETTINGS">
+          <div class="win">
+            <div class="win-titlebar">
+              <div class="win-dots">
+                <span class="win-dot close"></span>
+                <span class="win-dot min"></span>
+                <span class="win-dot max"></span>
+              </div>
+              <span class="win-title">Procbar — Settings</span>
+            </div>
+            <div class="win-tabs">
+              <div class="win-tab">General</div>
+              <div class="win-tab">Worktrees</div>
+              <div class="win-tab active">Patterns</div>
+            </div>
+            <div class="win-body">
+              <div class="win-row">
+                <div class="win-label">Process patterns</div>
+                <div style="font-size:12px; color: var(--d-text-3);">
+                  Matched if name or command contains the substring (case-insensitive).
+                </div>
+              </div>
+              <div class="win-section" style="border:0; padding-top:4px; margin-top:0">
+                <div class="pattern-row">
+                  <input class="win-field" value="NX" />
+                  <input class="win-field" value="nx" />
+                  <div class="seg"><span class="active">command</span><span>name</span></div>
+                  <div class="remove">−</div>
+                </div>
+                <div class="pattern-row">
+                  <input class="win-field" value="Vite" />
+                  <input class="win-field" value="vite" />
+                  <div class="seg"><span class="active">command</span><span>name</span></div>
+                  <div class="remove">−</div>
+                </div>
+                <div class="pattern-row">
+                  <input class="win-field" value="Node" />
+                  <input class="win-field" value="node" />
+                  <div class="seg"><span>command</span><span class="active">name</span></div>
+                  <div class="remove">−</div>
+                </div>
+                <div class="pattern-row">
+                  <input class="win-field" value="Postgres" />
+                  <input class="win-field" value="postgres" />
+                  <div class="seg"><span>command</span><span class="active">name</span></div>
+                  <div class="remove">−</div>
+                </div>
+                <div class="pattern-row">
+                  <input class="win-field" value="Next" />
+                  <input class="win-field" value="next dev" />
+                  <div class="seg"><span class="active">command</span><span>name</span></div>
+                  <div class="remove">−</div>
+                </div>
+                <button class="add-btn">+ Add pattern</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 08: PALETTE ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 08</span>
+        <h2 class="fig-title">Palette</h2>
+        <p class="fig-desc">
+          Restrained monochrome with one amber accent. Warning-red and success-green show up only
+          at decision moments. All colors centralized in <code>DesignSystem.Color</code>.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div class="palette-grid">
+          <div class="palette-card">
+            <h4>DARK — STRUCTURAL</h4>
+            <div class="swatch"><span class="chip" style="background:#0E0E10"></span><span class="name">background</span><span class="hex">#0E0E10</span></div>
+            <div class="swatch"><span class="chip" style="background:#16161A"></span><span class="name">surface</span><span class="hex">#16161A</span></div>
+            <div class="swatch"><span class="chip" style="background:rgba(255,255,255,0.1); backdrop-filter: blur(2px)"></span><span class="name">hairline</span><span class="hex">rgba 10%</span></div>
+          </div>
+          <div class="palette-card">
+            <h4>DARK — TEXT</h4>
+            <div class="swatch"><span class="chip" style="background:#F2F2F5"></span><span class="name">text primary</span><span class="hex">#F2F2F5</span></div>
+            <div class="swatch"><span class="chip" style="background:#8A8A94"></span><span class="name">text secondary</span><span class="hex">#8A8A94</span></div>
+            <div class="swatch"><span class="chip" style="background:#5C5C65"></span><span class="name">text tertiary</span><span class="hex">#5C5C65</span></div>
+          </div>
+          <div class="palette-card">
+            <h4>DARK — ACCENTS</h4>
+            <div class="swatch"><span class="chip" style="background:#FFB020"></span><span class="name">amber accent</span><span class="hex">#FFB020</span></div>
+            <div class="swatch"><span class="chip" style="background:#FF5B49"></span><span class="name">warning</span><span class="hex">#FF5B49</span></div>
+            <div class="swatch"><span class="chip" style="background:#4FD97C"></span><span class="name">success</span><span class="hex">#4FD97C</span></div>
+          </div>
+
+          <div class="palette-card">
+            <h4>LIGHT — STRUCTURAL</h4>
+            <div class="swatch"><span class="chip" style="background:#FAFAF7"></span><span class="name">background</span><span class="hex">#FAFAF7</span></div>
+            <div class="swatch"><span class="chip" style="background:#FFFFFF"></span><span class="name">surface</span><span class="hex">#FFFFFF</span></div>
+            <div class="swatch"><span class="chip" style="background:rgba(0,0,0,0.1)"></span><span class="name">hairline</span><span class="hex">rgba 10%</span></div>
+          </div>
+          <div class="palette-card">
+            <h4>LIGHT — TEXT</h4>
+            <div class="swatch"><span class="chip" style="background:#131316"></span><span class="name">text primary</span><span class="hex">#131316</span></div>
+            <div class="swatch"><span class="chip" style="background:#5C5C65"></span><span class="name">text secondary</span><span class="hex">#5C5C65</span></div>
+            <div class="swatch"><span class="chip" style="background:#9A9AA0"></span><span class="name">text tertiary</span><span class="hex">#9A9AA0</span></div>
+          </div>
+          <div class="palette-card">
+            <h4>LIGHT — ACCENTS</h4>
+            <div class="swatch"><span class="chip" style="background:#C9820A"></span><span class="name">amber accent</span><span class="hex">#C9820A</span></div>
+            <div class="swatch"><span class="chip" style="background:#C7341E"></span><span class="name">warning</span><span class="hex">#C7341E</span></div>
+            <div class="swatch"><span class="chip" style="background:#2F8C4C"></span><span class="name">success</span><span class="hex">#2F8C4C</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 09: TYPOGRAPHY ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 09</span>
+        <h2 class="fig-title">Typography ramp</h2>
+        <p class="fig-desc">
+          Native SF Pro for labels and numbers, with <em>tabular figures</em> on every numeric field so
+          rows align like a financial ledger. One display weight, one body weight, one mono weight.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div style="background: var(--d-bg); border: 1px solid var(--sc-hairline); border-radius: 8px; padding: 28px;">
+          <div class="type-row">
+            <div class="type-meta">SF Pro Display · 13 · Semibold · -0.3<br/>popover header</div>
+            <div class="type-sample" style="font-family: var(--native-sans); font-size: 13px; font-weight: 600; letter-spacing: -0.3px; color: var(--d-text-1);">Procbar</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta">SF Pro Text · 12 · Medium<br/>process display name</div>
+            <div class="type-sample" style="font-family: var(--native-sans); font-size: 12px; font-weight: 500; color: var(--d-text-1);">NX · VITE · POSTGRES · NODE</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta">SF Mono · 11 · Regular · tabular<br/>numeric readouts</div>
+            <div class="type-sample" style="font-family: var(--native-mono); font-size: 11px; color: var(--d-text-1); font-variant-numeric: tabular-nums;">48201 &nbsp; 24% &nbsp; 412 MB &nbsp; :4200 &nbsp; 14m</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta">SF Mono · 11 · branch name<br/>text tertiary</div>
+            <div class="type-sample" style="font-family: var(--native-mono); font-size: 11px; color: var(--d-text-3);">main · feat/courier-ui · release/0.2</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta">SF Pro Text · 10 · Medium · UPPER · +0.8<br/>micro-label</div>
+            <div class="type-sample" style="font-family: var(--native-sans); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--d-text-2);">PREFERENCES · OPEN CONFIG · QUIT</div>
+          </div>
+          <div class="type-row">
+            <div class="type-meta">SF Mono · 10 · Semibold · tabular<br/>count badge</div>
+            <div class="type-sample">
+              <span style="font-family: var(--native-mono); font-size: 10px; font-weight: 600; color: var(--d-accent); background: var(--d-accent-bg); padding: 2px 7px; border-radius: 999px; font-variant-numeric: tabular-nums;">3</span>
+              &nbsp;
+              <span style="font-family: var(--native-mono); font-size: 10px; font-weight: 600; color: var(--d-accent); background: var(--d-accent-bg); padding: 2px 7px; border-radius: 999px; font-variant-numeric: tabular-nums;">12</span>
+              &nbsp;
+              <span style="font-family: var(--native-mono); font-size: 10px; font-weight: 600; color: var(--d-accent); background: var(--d-accent-bg); padding: 2px 7px; border-radius: 999px; font-variant-numeric: tabular-nums;">127</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FIG 10: ACTIVITY STATES ================= -->
+    <section class="fig">
+      <div class="meta">
+        <span class="fig-code">FIG 10</span>
+        <h2 class="fig-title">Activity states · dot legend</h2>
+        <p class="fig-desc">
+          Each process row carries a 5pt dot left of the name indicating whether the process is
+          doing work right now, worked recently, or has been quiet. Resolved from a rolling
+          <code>lastActiveAt</code> timestamp updated every poll. Idle rows also swap their uptime
+          readout for <code>idle Xm</code> to highlight stale dev servers.
+        </p>
+      </div>
+      <div class="fig-body">
+        <div style="background: var(--d-bg); border: 1px solid var(--sc-hairline); border-radius: 8px; padding: 28px;">
+
+          <div class="proc-row" style="padding: 6px 0; border-bottom: 1px solid var(--d-hairline)">
+            <div class="col-id">
+              <div class="proc-head">
+                <span class="proc-dot active"></span>
+                <span class="proc-name" style="font-family: var(--native-sans); color: var(--d-text-1)">NX</span>
+              </div>
+              <span class="proc-pid" style="font-family: var(--native-mono); color: var(--d-text-3)">PID 48201</span>
+            </div>
+            <div class="col-meter">
+              <span class="proc-cpu" style="font-family: var(--native-mono); color: var(--d-text-1)">24%</span>
+              <div class="cpu-bar-track" style="background: var(--d-hairline)"><div class="cpu-bar-fill" style="width:24%; background: var(--d-accent)"></div></div>
+            </div>
+            <div style="font-family: var(--native-sans); font-size: 12px; color: var(--d-text-2); grid-column: span 2;">
+              <strong style="color: var(--d-success)">ACTIVE NOW</strong> · CPU above threshold this sample. Dot is green, dot pulses once per major tick for subtle "alive" feedback.
+            </div>
+          </div>
+
+          <div class="proc-row" style="padding: 6px 0; border-bottom: 1px solid var(--d-hairline)">
+            <div class="col-id">
+              <div class="proc-head">
+                <span class="proc-dot recent"></span>
+                <span class="proc-name" style="font-family: var(--native-sans); color: var(--d-text-1)">Node</span>
+              </div>
+              <span class="proc-pid" style="font-family: var(--native-mono); color: var(--d-text-3)">PID 51082</span>
+            </div>
+            <div class="col-meter">
+              <span class="proc-cpu" style="font-family: var(--native-mono); color: var(--d-text-1)">0%</span>
+              <div class="cpu-bar-track" style="background: var(--d-hairline)"><div class="cpu-bar-fill" style="width:0%"></div></div>
+            </div>
+            <div style="font-family: var(--native-sans); font-size: 12px; color: var(--d-text-2); grid-column: span 2;">
+              <strong style="color: var(--d-accent)">RECENTLY ACTIVE</strong> · Quiet now but worked within <code>recent_window_minutes</code> (default 5m). Dot is amber.
+            </div>
+          </div>
+
+          <div class="proc-row proc-idle" style="padding: 6px 0;">
+            <div class="col-id">
+              <div class="proc-head">
+                <span class="proc-dot idle"></span>
+                <span class="proc-name" style="font-family: var(--native-sans); color: var(--d-text-2)">Postgres</span>
+              </div>
+              <span class="proc-pid" style="font-family: var(--native-mono); color: var(--d-text-3)">PID 04201</span>
+            </div>
+            <div class="col-meter">
+              <span class="proc-cpu" style="font-family: var(--native-mono); color: var(--d-text-3)">0%</span>
+              <div class="cpu-bar-track" style="background: var(--d-hairline)"><div class="cpu-bar-fill" style="width:0%"></div></div>
+            </div>
+            <div style="font-family: var(--native-sans); font-size: 12px; color: var(--d-text-2); grid-column: span 2;">
+              <strong style="color: var(--d-text-2)">IDLE</strong> · No activity for longer than the recent window. Dot is tertiary gray; the action column shows <code style="color: var(--d-accent)">idle 3h</code> instead of uptime.
+            </div>
+          </div>
+
+          <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--d-hairline); display: grid; grid-template-columns: 1fr 1fr; gap: 18px; font-family: var(--mono); font-size: 11px; color: var(--sc-text-2);">
+            <div>
+              <div style="text-transform: uppercase; letter-spacing: 0.14em; color: var(--sc-accent); font-size: 10px; margin-bottom: 6px;">TRANSITIONS</div>
+              <div style="font-family: var(--native-sans); font-size: 12px; line-height: 1.6; color: var(--d-text-2)">
+                Any sample with CPU &gt; threshold writes <code>now</code> to <code>lastActiveAt[pid]</code>.
+                State is a pure function of <code>(now − lastActiveAt)</code> vs the recent window.
+              </div>
+            </div>
+            <div>
+              <div style="text-transform: uppercase; letter-spacing: 0.14em; color: var(--sc-accent); font-size: 10px; margin-bottom: 6px;">FIRST SIGHT</div>
+              <div style="font-family: var(--native-sans); font-size: 12px; line-height: 1.6; color: var(--d-text-2)">
+                A newly-tracked PID is seeded with <code>lastActiveAt = now</code> so a fresh dev server
+                never displays as idle the first time it appears.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <footer class="pg-foot">
+      <div>PROCBAR · VISUAL PROTOTYPE · v0.1.0</div>
+      <div>END OF SHEET</div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Slightly randomize the CPU bar animation phases so they don't all pulse together.
+    document.querySelectorAll('.cpu-bar-fill[data-animate="on"]').forEach((el, i) => {
+      el.style.animationDelay = `${(Math.random() * 2).toFixed(2)}s`;
+      el.style.animationDuration = `${(3 + Math.random() * 2).toFixed(2)}s`;
+    });
+  </script>
+</body>
+</html>
