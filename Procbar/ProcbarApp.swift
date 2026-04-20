@@ -3,9 +3,12 @@ import SwiftUI
 @main
 struct ProcbarApp: App {
     var body: some Scene {
-        MenuBarExtra("Procbar", systemImage: "square.stack.3d.up.fill") {
+        MenuBarExtra {
             Text("Hello, Procbar")
                 .padding()
+        } label: {
+            Image("MenuBarIcon")
+                .renderingMode(.template)
         }
         .menuBarExtraStyle(.window)
 
