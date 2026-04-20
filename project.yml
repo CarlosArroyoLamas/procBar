@@ -1,0 +1,56 @@
+name: Procbar
+options:
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+  createIntermediateGroups: true
+
+packages:
+  Yams:
+    url: https://github.com/jpsim/Yams
+    from: 5.0.0
+
+targets:
+  Procbar:
+    type: application
+    platform: macOS
+    sources:
+      - path: Procbar
+    resources:
+      - path: Procbar/Resources
+    info:
+      path: Procbar/Info.plist
+      properties:
+        CFBundleName: Procbar
+        CFBundleIdentifier: com.carlos.procbar
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "13.0"
+        LSUIElement: true
+        NSHumanReadableCopyright: ""
+    settings:
+      base:
+        SWIFT_OBJC_BRIDGING_HEADER: Procbar/BridgingHeader.h
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+        PRODUCT_BUNDLE_IDENTIFIER: com.carlos.procbar
+    dependencies:
+      - package: Yams
+
+  ProcbarTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: ProcbarTests
+    dependencies:
+      - target: Procbar
+
+schemes:
+  Procbar:
+    build:
+      targets:
+        Procbar: all
+        ProcbarTests: [test]
+    test:
+      targets:
+        - ProcbarTests
