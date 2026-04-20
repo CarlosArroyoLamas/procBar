@@ -1,0 +1,18 @@
+refresh_interval_seconds: 3
+show_branch: true
+launch_at_login: false
+
+worktree_roots:
+  - ~/Documents
+  - ~/code
+
+excluded_paths:
+  - ~/Documents/archive
+
+process_patterns:
+  - name: "NX"
+    match: "nx"
+    match_field: command
+  - name: "Node"
+    match: "node"
+    match_field: name
