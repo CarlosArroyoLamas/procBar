@@ -14,11 +14,13 @@ final class AppViewModel: ObservableObject {
 
     @Published private(set) var groups: [WorktreeGroup] = []
     @Published private(set) var apps: [AppGroup] = []
+    @Published private(set) var system: SystemSnapshot?
     @Published private(set) var isActive: Bool = false
     @Published private(set) var showBranch: Bool = true
     @Published var configError: String?
 
     private let scanner: ProcessScanner
+    private let systemMonitor = SystemMonitor()
     private let worktreesProvider: () -> [Worktree]
     private let configProvider: () -> Config
     private var timer: Timer?
@@ -79,6 +81,7 @@ final class AppViewModel: ObservableObject {
     private struct Snapshot {
         let groups: [WorktreeGroup]
         let apps: [AppGroup]
+        let system: SystemSnapshot
         let isActive: Bool
         let showBranch: Bool
     }
@@ -111,9 +114,11 @@ final class AppViewModel: ObservableObject {
             tracked: result.tracked,
             raw: raw
         )
+        let sys = systemMonitor.sample()
         return Snapshot(
             groups: grouped,
             apps: appGroups,
+            system: sys,
             isActive: !grouped.isEmpty || !appGroups.isEmpty,
             showBranch: cfg.showBranch
         )
@@ -136,6 +141,7 @@ final class AppViewModel: ObservableObject {
     private func publish(snapshot: Snapshot) {
         self.groups = snapshot.groups
         self.apps = snapshot.apps
+        self.system = snapshot.system
         self.isActive = snapshot.isActive
         self.showBranch = snapshot.showBranch
     }

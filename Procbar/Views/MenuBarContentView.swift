@@ -19,6 +19,11 @@ struct MenuBarContentView: View {
                     .padding(.bottom, 6)
             }
 
+            if let sys = vm.system {
+                SystemSectionView(snapshot: sys)
+                HairlineDivider().padding(.vertical, 4)
+            }
+
             if vm.groups.isEmpty && vm.apps.isEmpty {
                 EmptyStateView(
                     title: "All quiet.",
