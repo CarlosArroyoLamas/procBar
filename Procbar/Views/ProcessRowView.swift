@@ -36,13 +36,19 @@ struct ProcessRowView: View {
 
     private var meterZone: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(String(format: "%.0f%%", process.cpuPercent))
-                .font(DesignSystem.Typography.numeric)
-                .foregroundStyle(
-                    (process.activity == .stale || process.activity == .dormant)
-                        ? DesignSystem.Color.textTertiary.swiftUI
-                        : DesignSystem.Color.textPrimary.swiftUI
-                )
+            HStack(spacing: 4) {
+                Text("CPU")
+                    .font(DesignSystem.Typography.microLabel)
+                    .tracking(0.8)
+                    .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+                Text(String(format: "%.0f%%", process.cpuPercent))
+                    .font(DesignSystem.Typography.numeric)
+                    .foregroundStyle(
+                        (process.activity == .stale || process.activity == .dormant)
+                            ? DesignSystem.Color.textTertiary.swiftUI
+                            : DesignSystem.Color.textPrimary.swiftUI
+                    )
+            }
             CPUBar(percent: process.cpuPercent)
         }
         .frame(width: DesignSystem.Spacing.meterColumnWidth, alignment: .leading)

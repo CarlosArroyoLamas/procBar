@@ -13,6 +13,7 @@ final class AppViewModel: ObservableObject {
     private let logger = Logger(subsystem: "com.carlos.procbar", category: "ui")
 
     @Published private(set) var groups: [WorktreeGroup] = []
+    @Published private(set) var apps: [AppGroup] = []
     @Published private(set) var isActive: Bool = false
     @Published private(set) var showBranch: Bool = true
     @Published var configError: String?
@@ -77,6 +78,7 @@ final class AppViewModel: ObservableObject {
 
     private struct Snapshot {
         let groups: [WorktreeGroup]
+        let apps: [AppGroup]
         let isActive: Bool
         let showBranch: Bool
     }
@@ -84,9 +86,17 @@ final class AppViewModel: ObservableObject {
     private func performScan(forceWorktreeRefresh: Bool) -> Snapshot {
         let cfg = configProvider()
         let raw = scanner.listRaw()
-        let matched = ProcessMatcher.matchPIDs(patterns: cfg.processPatterns, raw: raw)
+
+        // Union of pattern-matched + app-matched PIDs so one details pass
+        // covers both trackers. AppGroup uses the same TrackedProcess
+        // instances as WorktreeGroup — shared tracking keeps the view model
+        // consistent and the scan minimal.
+        let patternPIDs = ProcessMatcher.matchPIDs(patterns: cfg.processPatterns, raw: raw)
+        let appPIDs     = ProcessMatcher.matchAppPIDs(apps: cfg.apps, raw: raw)
+        let allMatched  = Array(Set(patternPIDs + appPIDs))
+
         let result = scanner.sampleDetails(
-            matchPIDs: matched,
+            matchPIDs: allMatched,
             raw: raw,
             activity: cfg.activity
         )
@@ -96,9 +106,15 @@ final class AppViewModel: ObservableObject {
             worktrees: worktrees,
             excluded: cfg.excludedPaths
         )
+        let appGroups = ProcessMatcher.groupApps(
+            apps: cfg.apps,
+            tracked: result.tracked,
+            raw: raw
+        )
         return Snapshot(
             groups: grouped,
-            isActive: !grouped.isEmpty,
+            apps: appGroups,
+            isActive: !grouped.isEmpty || !appGroups.isEmpty,
             showBranch: cfg.showBranch
         )
     }
@@ -119,6 +135,7 @@ final class AppViewModel: ObservableObject {
     @MainActor
     private func publish(snapshot: Snapshot) {
         self.groups = snapshot.groups
+        self.apps = snapshot.apps
         self.isActive = snapshot.isActive
         self.showBranch = snapshot.showBranch
     }

@@ -5,6 +5,15 @@ struct RawProcess: Equatable, Hashable {
     let ppid: Int32
     let name: String          // short command name (argv[0] basename, or comm)
     let command: String       // full argv joined by space, truncated at 1024 chars
+    let exePath: String       // absolute path to executable (from proc_pidpath)
+
+    init(pid: Int32, ppid: Int32, name: String, command: String, exePath: String = "") {
+        self.pid = pid
+        self.ppid = ppid
+        self.name = name
+        self.command = command
+        self.exePath = exePath
+    }
 }
 
 struct ProcessDetail: Equatable, Hashable {

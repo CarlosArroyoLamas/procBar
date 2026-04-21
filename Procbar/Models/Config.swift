@@ -26,6 +26,7 @@ struct Config: Codable, Equatable {
     var excludedPaths: [String]
     var processPatterns: [Pattern]
     var activity: ActivityConfig
+    var apps: [AppTracked]
 
     enum CodingKeys: String, CodingKey {
         case refreshIntervalSeconds = "refresh_interval_seconds"
@@ -35,6 +36,7 @@ struct Config: Codable, Equatable {
         case excludedPaths          = "excluded_paths"
         case processPatterns        = "process_patterns"
         case activity
+        case apps
     }
 
     init(
@@ -44,7 +46,8 @@ struct Config: Codable, Equatable {
         worktreeRoots: [String] = [],
         excludedPaths: [String] = [],
         processPatterns: [Pattern] = [],
-        activity: ActivityConfig = ActivityConfig()
+        activity: ActivityConfig = ActivityConfig(),
+        apps: [AppTracked] = []
     ) {
         self.refreshIntervalSeconds = max(1, min(30, refreshIntervalSeconds))
         self.showBranch = showBranch
@@ -53,6 +56,7 @@ struct Config: Codable, Equatable {
         self.excludedPaths = excludedPaths
         self.processPatterns = processPatterns
         self.activity = activity
+        self.apps = apps
     }
 
     init(from decoder: Decoder) throws {
@@ -64,6 +68,7 @@ struct Config: Codable, Equatable {
         let excluded = try c.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
         let patterns = try c.decodeIfPresent([Pattern].self, forKey: .processPatterns) ?? []
         let activity = (try? c.decode(ActivityConfig.self, forKey: .activity)) ?? ActivityConfig()
+        let apps = try c.decodeIfPresent([AppTracked].self, forKey: .apps) ?? []
         self.init(
             refreshIntervalSeconds: refresh,
             showBranch: showBranch,
@@ -71,7 +76,8 @@ struct Config: Codable, Equatable {
             worktreeRoots: roots,
             excludedPaths: excluded,
             processPatterns: patterns,
-            activity: activity
+            activity: activity,
+            apps: apps
         )
     }
 
@@ -101,6 +107,18 @@ struct Config: Codable, Equatable {
             ],
             activity: ActivityConfig()
         )
+    }
+}
+
+extension Config {
+    /// A Mac app whose entire process tree (main + helpers/renderers)
+    /// should be tracked as one aggregated group. Matching is by exe-path
+    /// prefix against `path` (the absolute .app bundle path).
+    struct AppTracked: Codable, Equatable, Hashable, Identifiable {
+        var name: String
+        var path: String
+
+        var id: String { path }
     }
 }
 

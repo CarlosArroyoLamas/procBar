@@ -54,4 +54,52 @@ enum ProcessMatcher {
     private static func pathDepth(_ path: String) -> Int {
         path.split(separator: "/", omittingEmptySubsequences: true).count
     }
+
+    // MARK: - Apps
+
+    /// Returns PIDs whose executable path lives inside one of the tracked
+    /// app bundles. A single process belongs to at most one app — whichever
+    /// bundle path matches as a prefix of its exe path.
+    static func matchAppPIDs(apps: [Config.AppTracked], raw: [RawProcess]) -> [Int32] {
+        guard !apps.isEmpty else { return [] }
+        return raw.compactMap { p in
+            appPath(apps: apps, exePath: p.exePath) != nil ? p.pid : nil
+        }
+    }
+
+    /// Groups tracked processes by the app bundle they belong to,
+    /// returning one `AppGroup` per configured app that has ≥ 1 running
+    /// process. Order matches the config's `apps` array so the UI is
+    /// stable across ticks.
+    static func groupApps(
+        apps: [Config.AppTracked],
+        tracked: [TrackedProcess],
+        raw: [RawProcess]
+    ) -> [AppGroup] {
+        guard !apps.isEmpty else { return [] }
+        let pidToExe = Dictionary(uniqueKeysWithValues: raw.map { ($0.pid, $0.exePath) })
+        var buckets: [String: [TrackedProcess]] = [:]
+        for p in tracked {
+            let exe = pidToExe[p.pid] ?? ""
+            guard let bundle = appPath(apps: apps, exePath: exe) else { continue }
+            buckets[bundle, default: []].append(p)
+        }
+        return apps.compactMap { app in
+            guard let procs = buckets[app.path], !procs.isEmpty else { return nil }
+            let sorted = procs.sorted { a, b in
+                if a.cpuPercent != b.cpuPercent { return a.cpuPercent > b.cpuPercent }
+                if a.memoryMB   != b.memoryMB   { return a.memoryMB   > b.memoryMB   }
+                return a.pid < b.pid
+            }
+            return AppGroup(app: app, processes: sorted)
+        }
+    }
+
+    private static func appPath(apps: [Config.AppTracked], exePath: String) -> String? {
+        guard !exePath.isEmpty else { return nil }
+        for app in apps where exePath.hasPrefix(app.path) {
+            return app.path
+        }
+        return nil
+    }
 }

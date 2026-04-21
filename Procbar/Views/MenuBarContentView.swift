@@ -7,8 +7,10 @@ struct MenuBarContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HeaderView(
-                processCount: vm.groups.reduce(0) { $0 + $1.processes.count },
-                worktreeCount: vm.groups.count
+                processCount: vm.groups.reduce(0) { $0 + $1.processes.count }
+                            + vm.apps.reduce(0) { $0 + $1.processes.count },
+                worktreeCount: vm.groups.count,
+                appCount: vm.apps.count
             )
             HairlineDivider().padding(.bottom, 6)
 
@@ -17,7 +19,7 @@ struct MenuBarContentView: View {
                     .padding(.bottom, 6)
             }
 
-            if vm.groups.isEmpty {
+            if vm.groups.isEmpty && vm.apps.isEmpty {
                 EmptyStateView(
                     title: "All quiet.",
                     actionTitle: nil,
@@ -27,9 +29,26 @@ struct MenuBarContentView: View {
                 .padding(.vertical, 20)
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: DesignSystem.Spacing.sectionGap) {
-                        ForEach(vm.groups) { group in
-                            WorktreeSectionView(group: group)
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sectionGap) {
+                        if !vm.groups.isEmpty {
+                            ForEach(vm.groups) { group in
+                                WorktreeSectionView(group: group)
+                            }
+                        }
+
+                        if !vm.apps.isEmpty {
+                            if !vm.groups.isEmpty {
+                                HairlineDivider().padding(.vertical, 4)
+                            }
+                            Text("APPLICATIONS")
+                                .font(DesignSystem.Typography.microLabel)
+                                .tracking(0.8)
+                                .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+                            VStack(spacing: 0) {
+                                ForEach(vm.apps) { appGroup in
+                                    AppSectionView(group: appGroup)
+                                }
+                            }
                         }
                     }
                     .padding(.bottom, 6)
@@ -37,7 +56,7 @@ struct MenuBarContentView: View {
                 .frame(maxHeight: DesignSystem.Spacing.popoverMaxHeight)
             }
 
-            if !vm.groups.isEmpty {
+            if !vm.groups.isEmpty || !vm.apps.isEmpty {
                 ActivityLegend()
                     .padding(.top, 6)
             }

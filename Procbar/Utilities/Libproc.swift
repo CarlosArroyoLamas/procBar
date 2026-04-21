@@ -28,14 +28,26 @@ final class LibprocSource: ProcessSource {
                 }
             }
             let command = fetchCommandLine(pid) ?? name
+            let exe = fetchExePath(pid) ?? ""
             result.append(RawProcess(
                 pid: pid,
                 ppid: Int32(bsd.pbi_ppid),
                 name: name,
-                command: command
+                command: command,
+                exePath: exe
             ))
         }
         return result
+    }
+
+    private func fetchExePath(_ pid: pid_t) -> String? {
+        // PROC_PIDPATHINFO_MAXSIZE is a C macro (4 * MAXPATHLEN = 4096)
+        // not exported to Swift; inline the constant.
+        let bufSize = 4096
+        var buf = [CChar](repeating: 0, count: bufSize)
+        let ret = proc_pidpath(pid, &buf, UInt32(bufSize))
+        guard ret > 0 else { return nil }
+        return String(cString: buf)
     }
 
     func fetchDetails(for pids: [Int32]) -> [Int32: ProcessDetail] {

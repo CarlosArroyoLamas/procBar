@@ -16,10 +16,18 @@ struct SettingsView: View {
             generalTab.tabItem { Label("General", systemImage: "gearshape") }
             rootsTab.tabItem { Label("Worktrees", systemImage: "folder") }
             patternsTab.tabItem { Label("Patterns", systemImage: "text.magnifyingglass") }
+            appsTab.tabItem { Label("Apps", systemImage: "app.badge") }
         }
         .padding(20)
-        .frame(width: 620, height: 520)
+        .frame(width: 640, height: 560)
         .onAppear(perform: load)
+    }
+
+    // MARK: - Apps
+
+    private var appsTab: some View {
+        InstalledAppsPicker(tracked: $cfg.apps)
+            .onChange(of: cfg.apps) { _ in save() }
     }
 
     // MARK: - General
@@ -370,6 +378,111 @@ private struct PatternList: View {
             .buttonStyle(.plain)
             .foregroundStyle(DesignSystem.Color.accent.swiftUI)
         }
+    }
+}
+
+// MARK: - Installed apps picker
+
+private struct InstalledAppsPicker: View {
+    @Binding var tracked: [Config.AppTracked]
+    @State private var entries: [InstalledApps.Entry] = []
+    @State private var query: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(
+                title: "Track applications",
+                subtitle: "Procbar aggregates every process in the app bundle (main + helpers + renderers) into one row so you can watch and stop the whole app at once."
+            )
+
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+                TextField("Search installed apps…", text: $query)
+                    .textFieldStyle(.plain)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(DesignSystem.Color.surface.swiftUI)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(DesignSystem.Color.hairline.swiftUI, lineWidth: 1)
+            )
+
+            if tracked.isEmpty && entries.isEmpty {
+                Text("Loading installed applications…")
+                    .font(DesignSystem.Typography.bodyRegular)
+                    .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+            }
+
+            ScrollView(.vertical, showsIndicators: true) {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(filtered) { entry in
+                        AppRow(
+                            entry: entry,
+                            isTracked: tracked.contains(where: { $0.path == entry.path })
+                        ) { tracking in
+                            toggle(entry, to: tracking)
+                        }
+                        HairlineDivider()
+                    }
+                }
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .onAppear {
+            if entries.isEmpty {
+                entries = InstalledApps.scan()
+            }
+        }
+    }
+
+    private var filtered: [InstalledApps.Entry] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return entries }
+        return entries.filter { $0.name.lowercased().contains(q) }
+    }
+
+    private func toggle(_ entry: InstalledApps.Entry, to tracking: Bool) {
+        if tracking {
+            if !tracked.contains(where: { $0.path == entry.path }) {
+                tracked.append(Config.AppTracked(name: entry.name, path: entry.path))
+            }
+        } else {
+            tracked.removeAll { $0.path == entry.path }
+        }
+    }
+}
+
+private struct AppRow: View {
+    let entry: InstalledApps.Entry
+    let isTracked: Bool
+    let onToggle: (Bool) -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: entry.path))
+                .resizable()
+                .frame(width: 22, height: 22)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(entry.name)
+                    .font(DesignSystem.Typography.body)
+                    .foregroundStyle(DesignSystem.Color.textPrimary.swiftUI)
+                Text(entry.path)
+                    .font(DesignSystem.Typography.branch)
+                    .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { isTracked },
+                set: { onToggle($0) }
+            ))
+            .labelsHidden()
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
 }
 
