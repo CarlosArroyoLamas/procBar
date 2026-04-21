@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import SwiftUI
+import Combine
 import os
 
 @MainActor
@@ -12,6 +13,10 @@ final class AppContext: ObservableObject {
     /// file watcher on it so external edits flow back into the UI.
     let configStore: ConfigStore
 
+    /// Token for the NSWindow.willCloseNotification observer. Held so we can
+    /// un-observe (and drop the activation-policy reset) if needed.
+    private var closeObserver: NSObjectProtocol?
+
     var configPath: URL { configStore.path }
 
     init(configStore: ConfigStore) {
@@ -20,13 +25,18 @@ final class AppContext: ObservableObject {
 
     /// Opens the SwiftUI `Settings` scene window.
     ///
-    /// For an `LSUIElement` app, the window doesn't exist on launch; we
-    /// have to (1) activate the app so a window can become key, then
-    /// (2) send the right selector for the running OS. In macOS 14 Apple
-    /// renamed `showPreferencesWindow:` to `showSettingsWindow:`. A
-    /// post-dispatch sweep finds the settings window by title and orders
-    /// it to the front if the selector pathway failed silently.
+    /// `LSUIElement` apps declare activationPolicy = .accessory, meaning
+    /// they can't own a key window. The Settings scene's selector
+    /// (`showSettingsWindow:` on macOS 14+, `showPreferencesWindow:` on 13)
+    /// is dispatched but the resulting window fails to become visible
+    /// because .accessory apps can't have ordered-front windows.
+    ///
+    /// The workaround is to promote the policy to .regular for the duration
+    /// the Settings window is open, then drop back to .accessory when it
+    /// closes. Dock briefly gains an icon; that's acceptable for a settings
+    /// panel and the only way to get a reliable, key-focused window.
     func openSettings() {
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
         let selector: Selector
@@ -38,21 +48,51 @@ final class AppContext: ObservableObject {
         let dispatched = NSApp.sendAction(selector, to: nil, from: nil)
         logger.info("openSettings: selector=\(NSStringFromSelector(selector), privacy: .public) dispatched=\(dispatched)")
 
-        // Fallback: give SwiftUI a run-loop turn to create/show the window,
-        // then explicitly key any window matching the Settings title.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            let titles = ["Settings", "Preferences"]
-            if let win = NSApp.windows.first(where: { w in
-                titles.contains(where: { w.title.contains($0) })
-                    || w.identifier?.rawValue.contains("com_apple_SwiftUI_Settings_window") == true
-            }) {
+        // Find the Settings window after SwiftUI has had a chance to create
+        // it, force it to be key, and install a close observer so we can
+        // drop back to .accessory when the user dismisses it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self else { return }
+            let candidate = NSApp.windows.first { w in
+                let title = w.title
+                let id = w.identifier?.rawValue ?? ""
+                return title.contains("Settings")
+                    || title.contains("Preferences")
+                    || id.contains("com_apple_SwiftUI_Settings_window")
+            }
+            if let win = candidate {
                 win.makeKeyAndOrderFront(nil)
                 NSApp.activate(ignoringOtherApps: true)
+                self.logger.info("openSettings: fronting window title=\(win.title, privacy: .public)")
+                self.watchForClose(win)
+            } else {
+                self.logger.error("openSettings: no Settings window found after dispatch")
+                // Nothing to restore to, but drop the policy so we don't
+                // leave the Dock icon around.
+                NSApp.setActivationPolicy(.accessory)
             }
         }
     }
 
     func openConfigFile() {
         NSWorkspace.shared.open(configPath)
+    }
+
+    private func watchForClose(_ window: NSWindow) {
+        if let existing = closeObserver {
+            NotificationCenter.default.removeObserver(existing)
+            closeObserver = nil
+        }
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            NSApp.setActivationPolicy(.accessory)
+            if let token = self?.closeObserver {
+                NotificationCenter.default.removeObserver(token)
+                self?.closeObserver = nil
+            }
+        }
     }
 }
