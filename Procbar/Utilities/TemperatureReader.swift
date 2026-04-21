@@ -12,16 +12,27 @@ import Foundation
 /// Failure mode is always nil — the caller renders a placeholder. We do
 /// not crash, do not throw, do not retry.
 ///
-/// `read()` returns the **maximum** sensor reading from all CPU-class
-/// temperature channels (package-max semantics). On a dev Mac the hottest
-/// sensor is almost always the busy CPU cluster; on an idle machine it
-/// drifts to whatever happens to be warmest.
+/// `read()` returns a **20-second rolling average** of the hottest CPU-class
+/// temperature channel (package-max semantics smoothed over time). The raw
+/// instantaneous readings can bounce 3–5 °C between ticks as a single core
+/// wakes and sleeps; averaging over ~10 samples (at the default 2s refresh)
+/// makes the displayed number feel stable without hiding real trends.
 final class TemperatureReader {
+    private struct Sample {
+        let at: Date
+        let value: Double
+    }
+
     /// Initialized lazily and cached. Creating the client is the expensive
     /// part; the per-tick cost is just copying current values.
     private var client: HIDClient?
     private var services: [HIDService] = []
     private let setupLock = NSLock()
+
+    /// Sliding window of recent readings. Pruned on every call to `read()`
+    /// so the buffer size stays bounded by poll rate × window.
+    private var samples: [Sample] = []
+    private let windowSeconds: TimeInterval = 20
 
     func read() -> Double? {
         setupLock.lock()
@@ -38,7 +49,15 @@ final class TemperatureReader {
                 max = v
             }
         }
-        return max == -Double.infinity ? nil : max
+        guard max != -Double.infinity else { return nil }
+
+        let now = Date()
+        samples.append(Sample(at: now, value: max))
+        let cutoff = now.addingTimeInterval(-windowSeconds)
+        samples.removeAll { $0.at < cutoff }
+
+        let sum = samples.reduce(0.0) { $0 + $1.value }
+        return sum / Double(samples.count)
     }
 
     private func ensureSetup() {
