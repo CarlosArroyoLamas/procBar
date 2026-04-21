@@ -34,7 +34,7 @@ struct MenuBarContentView: View {
                     }
                     .padding(.bottom, 6)
                 }
-                .frame(maxHeight: 480)
+                .frame(maxHeight: DesignSystem.Spacing.popoverMaxHeight)
             }
 
             HairlineDivider().padding(.top, 4)
@@ -44,9 +44,16 @@ struct MenuBarContentView: View {
                 quit:            { NSApplication.shared.terminate(nil) }
             )
         }
+        .frame(
+            width: DesignSystem.Spacing.popoverWidth - 2 * DesignSystem.Spacing.outerHorizontal,
+            alignment: .leading
+        )
         .padding(.horizontal, DesignSystem.Spacing.outerHorizontal)
         .padding(.vertical, DesignSystem.Spacing.outerVertical)
-        .frame(width: DesignSystem.Spacing.popoverWidth)
+        .frame(
+            width: DesignSystem.Spacing.popoverWidth,
+            alignment: .leading
+        )
         .background(DesignSystem.Color.background.swiftUI)
     }
 }

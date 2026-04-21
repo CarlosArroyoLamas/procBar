@@ -2,18 +2,24 @@ import SwiftUI
 
 enum DesignSystem {
     enum Spacing {
-        static let popoverWidth: CGFloat = 340
-        static let rowHeight: CGFloat = 34
-        static let sectionGap: CGFloat = 12
-        static let outerHorizontal: CGFloat = 14
-        static let outerVertical: CGFloat = 10
+        static let popoverWidth: CGFloat = 560
+        static let popoverMaxHeight: CGFloat = 720
+        static let rowHeight: CGFloat = 46
+        static let sectionGap: CGFloat = 16
+        static let outerHorizontal: CGFloat = 18
+        static let outerVertical: CGFloat = 14
         static let hairline: CGFloat = 1
-        static let headerHeight: CGFloat = 28
-        static let sectionHeaderHeight: CGFloat = 26
-        static let footerHeight: CGFloat = 30
-        static let cpuBarHeight: CGFloat = 2
-        static let cpuBarWidth: CGFloat = 80
-        static let stopButtonSize: CGFloat = 24
+        static let headerHeight: CGFloat = 36
+        static let sectionHeaderHeight: CGFloat = 32
+        static let footerHeight: CGFloat = 36
+        static let cpuBarHeight: CGFloat = 3
+        static let cpuBarWidth: CGFloat = 140
+        static let stopButtonSize: CGFloat = 28
+
+        // Per-row column widths for the process list.
+        static let identityColumnWidth: CGFloat = 190
+        static let meterColumnWidth: CGFloat = 140
+        static let resourceColumnWidth: CGFloat = 120
     }
 
     struct MotionSpec {
