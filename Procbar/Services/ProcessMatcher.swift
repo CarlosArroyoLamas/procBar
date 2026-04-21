@@ -40,7 +40,14 @@ enum ProcessMatcher {
         }
         return worktrees.compactMap { wt in
             guard let procs = buckets[wt.path], !procs.isEmpty else { return nil }
-            return WorktreeGroup(worktree: wt, processes: procs.sorted { $0.pid < $1.pid })
+            // Sort busiest first: CPU desc, then memory desc, then PID asc
+            // for stability across ticks when several rows are at 0%.
+            let sorted = procs.sorted { a, b in
+                if a.cpuPercent != b.cpuPercent { return a.cpuPercent > b.cpuPercent }
+                if a.memoryMB   != b.memoryMB   { return a.memoryMB   > b.memoryMB   }
+                return a.pid < b.pid
+            }
+            return WorktreeGroup(worktree: wt, processes: sorted)
         }
     }
 
