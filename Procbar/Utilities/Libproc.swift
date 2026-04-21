@@ -154,9 +154,13 @@ final class LibprocSource: ProcessSource {
             let tcp = sinfo.psi.soi_proto.pri_tcp
             // Only LISTEN state = 1 per tcp_fsm.h (TCPS_LISTEN)
             guard tcp.tcpsi_state == 1 else { continue }
-            let rawPort = tcp.tcpsi_ini.insi_lport.bigEndian
-            // rawPort is CInt (Int32); use bitPattern to avoid trap on negative values.
-            let port = UInt16(truncatingIfNeeded: UInt32(bitPattern: rawPort) & 0xFFFF)
+            // insi_lport is a CInt holding a port number in NETWORK byte
+            // order (big-endian) in its low 16 bits. To get a host-order
+            // UInt16 we take the low 16 bits and byte-swap — equivalent to
+            // ntohs() in C.
+            let raw32 = UInt32(bitPattern: tcp.tcpsi_ini.insi_lport)
+            let low16 = UInt16(truncatingIfNeeded: raw32)
+            let port = UInt16(bigEndian: low16)
             if port > 0 { ports.append(port) }
         }
         return Array(Set(ports)).sorted()

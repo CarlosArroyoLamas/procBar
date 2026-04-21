@@ -1,4 +1,5 @@
 import Foundation
+import Darwin.Mach
 
 struct ScanResult {
     let all: [RawProcess]
@@ -25,6 +26,19 @@ final class ProcessScanner {
     private let stateQueue = DispatchQueue(label: "com.carlos.procbar.scanner.state")
     private var lastSample: (date: Date, ticksByPid: [Int32: UInt64])?
     private var lastActiveAt: [Int32: Date] = [:]
+
+    /// Mach-absolute-time → nanoseconds conversion factor. On Intel Macs
+    /// it's 1:1; on Apple Silicon it's roughly 125/3 (a tick ≈ 41.67 ns).
+    /// `pti_total_user`/`pti_total_system` from `proc_pidinfo` are
+    /// reported in mach ticks despite the struct naming suggesting
+    /// otherwise, so we must convert before treating them as time.
+    private let machTicksToNanos: Double = {
+        var info = mach_timebase_info_data_t()
+        mach_timebase_info(&info)
+        let numer = Double(info.numer == 0 ? 1 : info.numer)
+        let denom = Double(info.denom == 0 ? 1 : info.denom)
+        return numer / denom
+    }()
 
     init(source: ProcessSource, clock: @escaping () -> Date = Date.init) {
         self.source = source
@@ -62,12 +76,17 @@ final class ProcessScanner {
                 guard let rp = byPid[pid], let d = detail[pid] else { continue }
                 nextTicks[pid] = d.cpuTicks
 
+                // CPU% is per-core (Activity Monitor convention): 100% = one
+                // core fully saturated, 800% = eight cores saturated, etc.
+                // Kernel-reported ticks are mach-absolute units; convert to
+                // nanoseconds via the cached timebase before dividing by
+                // wall-clock nanoseconds.
                 let cpu: Double
                 if elapsed > 0.05, let last = lastTicks[pid] {
-                    let deltaNs   = Double(d.cpuTicks &- last)
+                    let deltaTicks = Double(d.cpuTicks &- last)
+                    let deltaNs   = deltaTicks * machTicksToNanos
                     let elapsedNs = elapsed * 1_000_000_000
-                    let ncpu      = Double(ProcessInfo.processInfo.activeProcessorCount)
-                    cpu = max(0, min(800, (deltaNs / elapsedNs) * 100.0 / ncpu))
+                    cpu = max(0, min(800, (deltaNs / elapsedNs) * 100.0))
                 } else {
                     cpu = 0
                 }

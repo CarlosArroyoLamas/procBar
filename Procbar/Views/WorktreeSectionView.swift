@@ -3,7 +3,10 @@ import SwiftUI
 struct WorktreeSectionView: View {
     let group: WorktreeGroup
     @EnvironmentObject var vm: AppViewModel
-    @State private var expanded = true
+    /// Sections are collapsed by default — the summary line under each
+    /// header already gives you the at-a-glance totals, and an uncluttered
+    /// list beats a wall of rows when you have many worktrees open.
+    @State private var expanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
