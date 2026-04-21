@@ -13,86 +13,68 @@ final class AppContext: ObservableObject {
     /// file watcher on it so external edits flow back into the UI.
     let configStore: ConfigStore
 
-    /// Token for the NSWindow.willCloseNotification observer. Held so we can
-    /// un-observe (and drop the activation-policy reset) if needed.
-    private var closeObserver: NSObjectProtocol?
-
     var configPath: URL { configStore.path }
+
+    /// Lazily-built NSWindow hosting `SettingsView`. We build our own
+    /// window rather than relying on the SwiftUI `Settings { ... }` scene,
+    /// because on `LSUIElement` menu bar apps the `Settings` scene's
+    /// selector path (`showSettingsWindow:`) silently fails to materialize
+    /// a window — the selector returns handled, but no window is ever
+    /// added to `NSApp.windows`.
+    private var settingsWindow: NSWindow?
+    private var closeObserver: NSObjectProtocol?
 
     init(configStore: ConfigStore) {
         self.configStore = configStore
     }
 
-    /// Opens the SwiftUI `Settings` scene window.
+    /// Opens (or brings to front) the Settings window.
     ///
-    /// `LSUIElement` apps declare activationPolicy = .accessory, meaning
-    /// they can't own a key window. The Settings scene's selector
-    /// (`showSettingsWindow:` on macOS 14+, `showPreferencesWindow:` on 13)
-    /// is dispatched but the resulting window fails to become visible
-    /// because .accessory apps can't have ordered-front windows.
-    ///
-    /// The workaround is to promote the policy to .regular for the duration
-    /// the Settings window is open, then drop back to .accessory when it
-    /// closes. Dock briefly gains an icon; that's acceptable for a settings
-    /// panel and the only way to get a reliable, key-focused window.
+    /// Strategy:
+    ///   1. Promote activation policy to `.regular` so the window can key.
+    ///      LSUIElement apps run as `.accessory` and can't own a key window.
+    ///   2. Either show the cached window or build a new one via
+    ///      `NSHostingController(rootView: SettingsView())`.
+    ///   3. When the window closes, drop back to `.accessory` so the Dock
+    ///      icon goes away, and release the window so the next open is
+    ///      fresh.
     func openSettings() {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
-        let selector: Selector
-        if #available(macOS 14.0, *) {
-            selector = Selector(("showSettingsWindow:"))
-        } else {
-            selector = Selector(("showPreferencesWindow:"))
+        if let existing = settingsWindow {
+            existing.makeKeyAndOrderFront(nil)
+            logger.info("openSettings: reusing existing window")
+            return
         }
-        let dispatched = NSApp.sendAction(selector, to: nil, from: nil)
-        logger.info("openSettings: selector=\(NSStringFromSelector(selector), privacy: .public) dispatched=\(dispatched)")
 
-        // Find the Settings window after SwiftUI has had a chance to create
-        // it, force it to be key, and install a close observer so we can
-        // drop back to .accessory when the user dismisses it.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self else { return }
-            let candidate = NSApp.windows.first { w in
-                let title = w.title
-                let id = w.identifier?.rawValue ?? ""
-                return title.contains("Settings")
-                    || title.contains("Preferences")
-                    || id.contains("com_apple_SwiftUI_Settings_window")
-            }
-            if let win = candidate {
-                win.makeKeyAndOrderFront(nil)
-                NSApp.activate(ignoringOtherApps: true)
-                self.logger.info("openSettings: fronting window title=\(win.title, privacy: .public)")
-                self.watchForClose(win)
-            } else {
-                self.logger.error("openSettings: no Settings window found after dispatch")
-                // Nothing to restore to, but drop the policy so we don't
-                // leave the Dock icon around.
-                NSApp.setActivationPolicy(.accessory)
+        let rootView = SettingsView().environmentObject(self)
+        let hosting = NSHostingController(rootView: rootView)
+        let win = NSWindow(contentViewController: hosting)
+        win.title = "Procbar Settings"
+        win.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+        win.setContentSize(NSSize(width: 620, height: 520))
+        win.center()
+        win.isReleasedWhenClosed = false
+        win.makeKeyAndOrderFront(nil)
+        settingsWindow = win
+        logger.info("openSettings: created new Settings window")
+
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: win,
+            queue: .main
+        ) { [weak self] _ in
+            NSApp.setActivationPolicy(.accessory)
+            self?.settingsWindow = nil
+            if let token = self?.closeObserver {
+                NotificationCenter.default.removeObserver(token)
+                self?.closeObserver = nil
             }
         }
     }
 
     func openConfigFile() {
         NSWorkspace.shared.open(configPath)
-    }
-
-    private func watchForClose(_ window: NSWindow) {
-        if let existing = closeObserver {
-            NotificationCenter.default.removeObserver(existing)
-            closeObserver = nil
-        }
-        closeObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] _ in
-            NSApp.setActivationPolicy(.accessory)
-            if let token = self?.closeObserver {
-                NotificationCenter.default.removeObserver(token)
-                self?.closeObserver = nil
-            }
-        }
     }
 }

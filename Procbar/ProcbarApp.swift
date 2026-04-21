@@ -109,10 +109,11 @@ struct ProcbarApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Settings {
-            SettingsView()
-                .environmentObject(appContext)
-        }
+        // Deliberately no `Settings { ... }` scene. On LSUIElement apps
+        // the built-in SwiftUI Settings scene's window creation silently
+        // fails (selector dispatches but no NSWindow ever appears). The
+        // Settings window is shown by AppContext.openSettings() which
+        // builds an NSHostingController-backed NSWindow directly.
     }
 }
 
