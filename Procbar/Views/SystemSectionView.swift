@@ -79,20 +79,20 @@ struct SystemSectionView: View {
     }
 
     private var loadAndUptime: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             HStack(spacing: 4) {
                 Text("LOAD")
                     .font(DesignSystem.Typography.microLabel)
                     .tracking(0.8)
                     .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
-                Text(String(format: "%.1f · %.1f · %.1f",
-                            snapshot.loadAverage1,
-                            snapshot.loadAverage5,
-                            snapshot.loadAverage15))
-                    .font(DesignSystem.Typography.numeric)
-                    .foregroundStyle(DesignSystem.Color.textPrimary.swiftUI)
-                    .help("Load average over 1, 5, and 15 minutes")
+                loadBucket("1m",  value: snapshot.loadAverage1)
+                Text("·").foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+                loadBucket("5m",  value: snapshot.loadAverage5)
+                Text("·").foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+                loadBucket("15m", value: snapshot.loadAverage15)
             }
+            .help(loadHelpText)
+
             HStack(spacing: 4) {
                 Text("UP")
                     .font(DesignSystem.Typography.microLabel)
@@ -104,6 +104,29 @@ struct SystemSectionView: View {
                     .help("Time since kernel boot")
             }
         }
+    }
+
+    private func loadBucket(_ period: String, value: Double) -> some View {
+        HStack(spacing: 3) {
+            Text(period)
+                .font(DesignSystem.Typography.microLabel)
+                .tracking(0.8)
+                .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+            Text(String(format: "%.1f", value))
+                .font(DesignSystem.Typography.numeric)
+                .foregroundStyle(DesignSystem.Color.textPrimary.swiftUI)
+        }
+    }
+
+    private var loadHelpText: String {
+        let cores = ProcessInfo.processInfo.activeProcessorCount
+        return """
+        Load average: processes running or waiting for CPU, averaged over \
+        1, 5, and 15 minutes. \
+        Numbers near \(cores) (your core count) mean full saturation; above \
+        \(cores) means jobs are queuing. \
+        1m > 5m → load is climbing; 1m < 5m → cooling down.
+        """
     }
 
     // MARK: - Helpers
