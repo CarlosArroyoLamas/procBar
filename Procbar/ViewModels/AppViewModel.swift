@@ -15,6 +15,7 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var groups: [WorktreeGroup] = []
     @Published private(set) var apps: [AppGroup] = []
     @Published private(set) var system: SystemSnapshot?
+    @Published private(set) var temperatureUnit: Config.TemperatureUnit = .celsius
     @Published private(set) var isActive: Bool = false
     @Published private(set) var showBranch: Bool = true
     @Published var configError: String?
@@ -82,6 +83,7 @@ final class AppViewModel: ObservableObject {
         let groups: [WorktreeGroup]
         let apps: [AppGroup]
         let system: SystemSnapshot
+        let temperatureUnit: Config.TemperatureUnit
         let isActive: Bool
         let showBranch: Bool
     }
@@ -119,6 +121,7 @@ final class AppViewModel: ObservableObject {
             groups: grouped,
             apps: appGroups,
             system: sys,
+            temperatureUnit: cfg.temperatureUnit,
             isActive: !grouped.isEmpty || !appGroups.isEmpty,
             showBranch: cfg.showBranch
         )
@@ -142,6 +145,7 @@ final class AppViewModel: ObservableObject {
         self.groups = snapshot.groups
         self.apps = snapshot.apps
         self.system = snapshot.system
+        self.temperatureUnit = snapshot.temperatureUnit
         self.isActive = snapshot.isActive
         self.showBranch = snapshot.showBranch
     }

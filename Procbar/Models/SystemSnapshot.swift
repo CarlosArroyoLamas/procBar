@@ -21,6 +21,9 @@ struct SystemSnapshot: Equatable {
     var loadAverage15: Double
     /// Seconds since kernel boot.
     var uptimeSeconds: TimeInterval
+    /// Hottest CPU-class sensor reading in °C. `nil` if the private HID
+    /// temperature API is unavailable on this machine / OS version.
+    var cpuTemperatureCelsius: Double?
 
     var memoryUsedPercent: Double {
         guard memoryTotalBytes > 0 else { return 0 }

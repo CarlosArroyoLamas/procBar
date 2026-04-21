@@ -21,6 +21,7 @@ final class SystemMonitor {
 
     private let stateQueue = DispatchQueue(label: "com.carlos.procbar.sysmon.state")
     private var lastTicks: CPUTicks?
+    private let tempReader = TemperatureReader()
 
     /// Takes one snapshot. Safe to call from a background queue; internal
     /// state is guarded so the view model can call it on its scan queue.
@@ -31,6 +32,7 @@ final class SystemMonitor {
         let load   = sampleLoadAverage()
         let uptime = sampleUptime()
         let thermal = ProcessInfo.processInfo.thermalState
+        let temp = tempReader.read()
         return SystemSnapshot(
             cpuUsagePercent: cpu,
             memoryUsedBytes: memory.used,
@@ -41,7 +43,8 @@ final class SystemMonitor {
             loadAverage1: load.0,
             loadAverage5: load.1,
             loadAverage15: load.2,
-            uptimeSeconds: uptime
+            uptimeSeconds: uptime,
+            cpuTemperatureCelsius: temp
         )
     }
 

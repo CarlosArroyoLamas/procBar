@@ -7,6 +7,27 @@ struct Config: Codable, Equatable {
         case name
     }
 
+    enum TemperatureUnit: String, Codable, Equatable {
+        case celsius
+        case fahrenheit
+
+        var symbol: String {
+            switch self {
+            case .celsius:    return "°C"
+            case .fahrenheit: return "°F"
+            }
+        }
+
+        /// Converts a raw sensor reading (always °C from the HID API) to
+        /// this unit.
+        func display(fromCelsius c: Double) -> Double {
+            switch self {
+            case .celsius:    return c
+            case .fahrenheit: return c * 9.0 / 5.0 + 32.0
+            }
+        }
+    }
+
     struct Pattern: Codable, Equatable {
         var name: String
         var match: String
@@ -27,6 +48,7 @@ struct Config: Codable, Equatable {
     var processPatterns: [Pattern]
     var activity: ActivityConfig
     var apps: [AppTracked]
+    var temperatureUnit: TemperatureUnit
 
     enum CodingKeys: String, CodingKey {
         case refreshIntervalSeconds = "refresh_interval_seconds"
@@ -37,6 +59,7 @@ struct Config: Codable, Equatable {
         case processPatterns        = "process_patterns"
         case activity
         case apps
+        case temperatureUnit        = "temperature_unit"
     }
 
     init(
@@ -47,7 +70,8 @@ struct Config: Codable, Equatable {
         excludedPaths: [String] = [],
         processPatterns: [Pattern] = [],
         activity: ActivityConfig = ActivityConfig(),
-        apps: [AppTracked] = []
+        apps: [AppTracked] = [],
+        temperatureUnit: TemperatureUnit = .celsius
     ) {
         self.refreshIntervalSeconds = max(1, min(30, refreshIntervalSeconds))
         self.showBranch = showBranch
@@ -57,6 +81,7 @@ struct Config: Codable, Equatable {
         self.processPatterns = processPatterns
         self.activity = activity
         self.apps = apps
+        self.temperatureUnit = temperatureUnit
     }
 
     init(from decoder: Decoder) throws {
@@ -69,6 +94,7 @@ struct Config: Codable, Equatable {
         let patterns = try c.decodeIfPresent([Pattern].self, forKey: .processPatterns) ?? []
         let activity = (try? c.decode(ActivityConfig.self, forKey: .activity)) ?? ActivityConfig()
         let apps = try c.decodeIfPresent([AppTracked].self, forKey: .apps) ?? []
+        let tempUnit = try c.decodeIfPresent(TemperatureUnit.self, forKey: .temperatureUnit) ?? .celsius
         self.init(
             refreshIntervalSeconds: refresh,
             showBranch: showBranch,
@@ -77,7 +103,8 @@ struct Config: Codable, Equatable {
             excludedPaths: excluded,
             processPatterns: patterns,
             activity: activity,
-            apps: apps
+            apps: apps,
+            temperatureUnit: tempUnit
         )
     }
 

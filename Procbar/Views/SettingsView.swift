@@ -40,6 +40,12 @@ struct SettingsView: View {
             Toggle("Show git branch in section headers", isOn: $cfg.showBranch)
             Toggle("Launch at login", isOn: $launchAtLoginSystem)
 
+            Picker("Temperature unit", selection: $cfg.temperatureUnit) {
+                Text("Celsius (°C)").tag(Config.TemperatureUnit.celsius)
+                Text("Fahrenheit (°F)").tag(Config.TemperatureUnit.fahrenheit)
+            }
+            .pickerStyle(.segmented)
+
             Section {
                 Button("Open config file…") { appContext.openConfigFile() }
                 Text(appContext.configPath.path)
@@ -57,6 +63,7 @@ struct SettingsView: View {
         }
         .onChange(of: cfg.refreshIntervalSeconds) { _ in save() }
         .onChange(of: cfg.showBranch) { _ in save() }
+        .onChange(of: cfg.temperatureUnit) { _ in save() }
         .onChange(of: launchAtLoginSystem) { newValue in
             LoginItem.setEnabled(newValue)
             cfg.launchAtLogin = newValue

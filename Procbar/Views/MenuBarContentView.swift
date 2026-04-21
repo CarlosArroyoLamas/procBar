@@ -20,7 +20,7 @@ struct MenuBarContentView: View {
             }
 
             if let sys = vm.system {
-                SystemSectionView(snapshot: sys)
+                SystemSectionView(snapshot: sys, temperatureUnit: vm.temperatureUnit)
                 HairlineDivider().padding(.vertical, 4)
             }
 

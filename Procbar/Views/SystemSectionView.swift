@@ -6,6 +6,7 @@ import SwiftUI
 /// specific worktree or app.
 struct SystemSectionView: View {
     let snapshot: SystemSnapshot
+    let temperatureUnit: Config.TemperatureUnit
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -54,15 +55,27 @@ struct SystemSectionView: View {
             Circle()
                 .fill(thermalColor)
                 .frame(width: 6, height: 6)
-            Text("THERMAL")
+            Text(tempLabelText)
                 .font(DesignSystem.Typography.microLabel)
                 .tracking(0.8)
                 .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
-            Text(thermalLabel)
+            Text(tempValueText)
                 .font(DesignSystem.Typography.numeric)
                 .foregroundStyle(DesignSystem.Color.textPrimary.swiftUI)
         }
         .help(thermalHelp)
+    }
+
+    private var tempLabelText: String {
+        snapshot.cpuTemperatureCelsius == nil ? "THERMAL" : "CPU TEMP"
+    }
+
+    private var tempValueText: String {
+        if let c = snapshot.cpuTemperatureCelsius {
+            let v = temperatureUnit.display(fromCelsius: c)
+            return String(format: "%.0f%@", v, temperatureUnit.symbol)
+        }
+        return thermalLabel
     }
 
     private var loadAndUptime: some View {
