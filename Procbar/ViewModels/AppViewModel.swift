@@ -3,12 +3,18 @@ import Combine
 import SwiftUI
 import os
 
-@MainActor
+/// Orchestrates polling, scanning, and publishing state to the UI.
+///
+/// Work is split: the expensive path (process enumeration, detail fetch,
+/// worktree scan, git-branch reads) runs on a background serial queue;
+/// published `@Published` properties are mutated on the main queue so SwiftUI
+/// observers don't see mid-publish thread hops.
 final class AppViewModel: ObservableObject {
     private let logger = Logger(subsystem: "com.carlos.procbar", category: "ui")
 
     @Published private(set) var groups: [WorktreeGroup] = []
     @Published private(set) var isActive: Bool = false
+    @Published private(set) var showBranch: Bool = true
     @Published var configError: String?
 
     private let scanner: ProcessScanner
@@ -17,14 +23,24 @@ final class AppViewModel: ObservableObject {
     private var timer: Timer?
     private let scanQueue = DispatchQueue(label: "com.carlos.procbar.scan", qos: .userInitiated)
 
-    init(scanner: ProcessScanner,
-         worktreesProvider: @escaping () -> [Worktree],
-         configProvider: @escaping () -> Config) {
+    /// Cached worktree result. Refreshed at most every `worktreeTTL` seconds
+    /// rather than on every tick — fs walks and git-HEAD reads are expensive
+    /// relative to the 2s polling cadence.
+    private var cachedWorktrees: [Worktree] = []
+    private var cachedAt: Date?
+    private let worktreeTTL: TimeInterval = 30
+
+    init(
+        scanner: ProcessScanner,
+        worktreesProvider: @escaping () -> [Worktree],
+        configProvider: @escaping () -> Config
+    ) {
         self.scanner = scanner
         self.worktreesProvider = worktreesProvider
         self.configProvider = configProvider
     }
 
+    @MainActor
     func start() {
         stop()
         let interval = TimeInterval(configProvider().refreshIntervalSeconds)
@@ -34,30 +50,85 @@ final class AppViewModel: ObservableObject {
         scheduleTick()
     }
 
+    @MainActor
     func stop() {
         timer?.invalidate()
         timer = nil
     }
 
+    /// Test-friendly synchronous tick. Runs the scan inline on the current
+    /// thread and publishes immediately; production path should call
+    /// `scheduleTick()` so scanning stays off the main actor.
+    @MainActor
+    func tickOnce() {
+        let snapshot = performScan(forceWorktreeRefresh: true)
+        publish(snapshot: snapshot)
+    }
+
     private func scheduleTick() {
         scanQueue.async { [weak self] in
             guard let self else { return }
-            Task { @MainActor in self.tickOnce() }
+            let snapshot = self.performScan(forceWorktreeRefresh: false)
+            DispatchQueue.main.async { [weak self] in
+                self?.publish(snapshot: snapshot)
+            }
         }
     }
 
-    func tickOnce() {
+    private struct Snapshot {
+        let groups: [WorktreeGroup]
+        let isActive: Bool
+        let showBranch: Bool
+    }
+
+    private func performScan(forceWorktreeRefresh: Bool) -> Snapshot {
         let cfg = configProvider()
-        let wts = worktreesProvider()
-        let rawAll = scanner.sample(matchPIDs: [], activity: cfg.activity).all
-        let matched = ProcessMatcher.matchPIDs(patterns: cfg.processPatterns, raw: rawAll)
-        let result = scanner.sample(matchPIDs: matched, activity: cfg.activity)
+        let raw = scanner.listRaw()
+        let matched = ProcessMatcher.matchPIDs(patterns: cfg.processPatterns, raw: raw)
+        let result = scanner.sampleDetails(
+            matchPIDs: matched,
+            raw: raw,
+            activity: cfg.activity
+        )
+        let worktrees = worktreesCached(force: forceWorktreeRefresh)
         let grouped = ProcessMatcher.group(
             tracked: result.tracked,
-            worktrees: wts,
+            worktrees: worktrees,
             excluded: cfg.excludedPaths
         )
-        self.groups = grouped
-        self.isActive = !grouped.isEmpty
+        return Snapshot(
+            groups: grouped,
+            isActive: !grouped.isEmpty,
+            showBranch: cfg.showBranch
+        )
+    }
+
+    private func worktreesCached(force: Bool) -> [Worktree] {
+        if !force,
+           let stamp = cachedAt,
+           Date().timeIntervalSince(stamp) < worktreeTTL,
+           !cachedWorktrees.isEmpty {
+            return cachedWorktrees
+        }
+        let wts = worktreesProvider()
+        cachedWorktrees = wts
+        cachedAt = Date()
+        return wts
+    }
+
+    @MainActor
+    private func publish(snapshot: Snapshot) {
+        self.groups = snapshot.groups
+        self.isActive = snapshot.isActive
+        self.showBranch = snapshot.showBranch
+    }
+
+    /// Invalidates the worktree cache so the next tick re-scans. Call when
+    /// config roots change.
+    func invalidateWorktreeCache() {
+        scanQueue.async { [weak self] in
+            self?.cachedAt = nil
+            self?.cachedWorktrees = []
+        }
     }
 }

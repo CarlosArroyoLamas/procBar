@@ -71,14 +71,24 @@ struct ProcessRowView: View {
         VStack(alignment: .trailing, spacing: 3) {
             uptimeOrIdleLabel
             StopButton(state: stopState) {
-                if stopState == .terminating {
-                    killCoordinator.forceKill(process: process)
+                switch stopState {
+                case .terminating:
+                    // Second click during grace window → fast-path SIGKILL.
                     stopState = .killing
-                } else {
-                    killCoordinator.gracefulKill(process: process) { gone in
-                        stopState = gone ? .done : .killing
-                    }
+                    killCoordinator.forceKill(process: process) { _ in }
+                case .idle:
                     stopState = .terminating
+                    killCoordinator.gracefulKill(process: process) { outcome in
+                        switch outcome {
+                        case .exitedGracefully:
+                            stopState = .done
+                        case .escalatedToSigkill, .forced:
+                            stopState = .killing
+                        }
+                    }
+                case .killing, .done:
+                    // No-op: row will collapse on the next poll.
+                    break
                 }
             }
         }

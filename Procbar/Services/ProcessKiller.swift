@@ -2,6 +2,15 @@ import Foundation
 import Darwin
 import os
 
+enum KillOutcome: Equatable {
+    /// All PIDs in the tree exited within the grace period after SIGTERM.
+    case exitedGracefully
+    /// Grace period elapsed; surviving PIDs received SIGKILL.
+    case escalatedToSigkill
+    /// `forceKill` path — SIGKILL sent immediately without SIGTERM.
+    case forced
+}
+
 protocol KillSender {
     func sigterm(_ pid: Int32)
     func sigkill(_ pid: Int32)
@@ -40,9 +49,11 @@ final class ProcessKiller {
         return out
     }
 
-    /// Sends SIGTERM to every PID, waits `graceSeconds`, then SIGKILL to survivors.
-    /// Completion is called on the internal queue when the sequence finishes.
-    func gracefulKill(tree pids: [Int32], completion: (() -> Void)? = nil) {
+    /// Sends SIGTERM to every PID, polls for up to `graceSeconds`, then
+    /// SIGKILLs survivors. Completion reports the actual outcome (whether
+    /// SIGKILL was needed) so the UI can distinguish "exited on its own"
+    /// from "had to be force-killed".
+    func gracefulKill(tree pids: [Int32], completion: ((KillOutcome) -> Void)? = nil) {
         queue.async { [weak self] in
             guard let self else { return }
             for pid in pids { self.sender.sigterm(pid) }
@@ -53,21 +64,25 @@ final class ProcessKiller {
                 if pids.allSatisfy({ !self.sender.isAlive($0) }) { allGone = true; break }
                 Thread.sleep(forTimeInterval: pollInterval)
             }
-            if !allGone {
+            let outcome: KillOutcome
+            if allGone {
+                outcome = .exitedGracefully
+            } else {
                 for pid in pids where self.sender.isAlive(pid) {
                     self.sender.sigkill(pid)
                 }
+                outcome = .escalatedToSigkill
             }
-            completion?()
+            completion?(outcome)
         }
     }
 
-    /// Immediate escalation (used for second-click fast path).
-    func forceKill(tree pids: [Int32], completion: (() -> Void)? = nil) {
+    /// Immediate escalation (used for the second-click fast path).
+    func forceKill(tree pids: [Int32], completion: ((KillOutcome) -> Void)? = nil) {
         queue.async { [weak self] in
             guard let self else { return }
             for pid in pids { self.sender.sigkill(pid) }
-            completion?()
+            completion?(.forced)
         }
     }
 }

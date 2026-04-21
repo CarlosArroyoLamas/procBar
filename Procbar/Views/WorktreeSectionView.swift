@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorktreeSectionView: View {
     let group: WorktreeGroup
+    @EnvironmentObject var vm: AppViewModel
     @State private var expanded = true
 
     var body: some View {
@@ -14,7 +15,7 @@ struct WorktreeSectionView: View {
                     Text(group.worktree.name)
                         .font(DesignSystem.Typography.body)
                         .foregroundStyle(DesignSystem.Color.textPrimary.swiftUI)
-                    if let branch = group.worktree.branch {
+                    if vm.showBranch, let branch = group.worktree.branch {
                         Image(systemName: "arrow.triangle.branch")
                             .font(.system(size: 9))
                             .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)

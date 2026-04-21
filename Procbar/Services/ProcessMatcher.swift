@@ -18,15 +18,22 @@ enum ProcessMatcher {
         excluded: [String] = []
     ) -> [WorktreeGroup] {
         let expandedExcluded = excluded.map(PathUtils.expand)
+        // Sort worktrees by depth (number of path components) descending, so a
+        // nested repo wins over its parent. Using component count avoids the
+        // subtle bug where `/a/b` with a long single component could look
+        // "deeper" than `/a/b/c/d` by raw character count.
+        let sortedByDepth = worktrees.sorted {
+            pathDepth($0.path) > pathDepth($1.path)
+        }
         var buckets: [String: [TrackedProcess]] = [:]
         for proc in tracked {
             guard !proc.cwd.isEmpty else { continue }
             if expandedExcluded.contains(where: { PathUtils.isInside(child: proc.cwd, parent: $0) }) {
                 continue
             }
-            let match = worktrees
-                .sorted { $0.path.count > $1.path.count } // deepest wins
-                .first { PathUtils.isInside(child: proc.cwd, parent: $0.path) }
+            let match = sortedByDepth.first {
+                PathUtils.isInside(child: proc.cwd, parent: $0.path)
+            }
             if let match {
                 buckets[match.path, default: []].append(proc)
             }
@@ -35,5 +42,9 @@ enum ProcessMatcher {
             guard let procs = buckets[wt.path], !procs.isEmpty else { return nil }
             return WorktreeGroup(worktree: wt, processes: procs.sorted { $0.pid < $1.pid })
         }
+    }
+
+    private static func pathDepth(_ path: String) -> Int {
+        path.split(separator: "/", omittingEmptySubsequences: true).count
     }
 }

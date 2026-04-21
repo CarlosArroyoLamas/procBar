@@ -2,8 +2,16 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var appContext: AppContext
-    @State private var cfg: Config = .defaultConfig()
+    @State private var cfg: Config
     @State private var loadError: String?
+    /// Mirrors `SMAppService.mainApp.status`, which is the real source of
+    /// truth for login-at-startup. Read lazily at paint time and updated by
+    /// the toggle's onChange.
+    @State private var launchAtLoginSystem: Bool = LoginItem.isEnabled
+
+    init() {
+        _cfg = State(initialValue: Config.defaultConfig())
+    }
 
     var body: some View {
         TabView {
@@ -22,11 +30,7 @@ struct SettingsView: View {
                 Text("Refresh interval: \(cfg.refreshIntervalSeconds) s")
             }
             Toggle("Show git branch in section headers", isOn: $cfg.showBranch)
-            Toggle("Launch at login", isOn: $cfg.launchAtLogin)
-                .onChange(of: cfg.launchAtLogin) { newValue in
-                    LoginItem.setEnabled(newValue)
-                    save()
-                }
+            Toggle("Launch at login", isOn: $launchAtLoginSystem)
             Button("Open config file…") { appContext.openConfigFile() }
             if let err = loadError {
                 Text(err)
@@ -36,6 +40,11 @@ struct SettingsView: View {
         }
         .onChange(of: cfg.refreshIntervalSeconds) { _ in save() }
         .onChange(of: cfg.showBranch) { _ in save() }
+        .onChange(of: launchAtLoginSystem) { newValue in
+            LoginItem.setEnabled(newValue)
+            cfg.launchAtLogin = newValue
+            save()
+        }
     }
 
     private var rootsTab: some View {
@@ -62,8 +71,8 @@ struct SettingsView: View {
 
     private func load() {
         do {
-            let store = ConfigStore(path: appContext.configPath)
-            cfg = try store.loadOrCreateDefault()
+            cfg = try appContext.configStore.loadOrCreateDefault()
+            launchAtLoginSystem = LoginItem.isEnabled
             loadError = nil
         } catch {
             loadError = error.localizedDescription
@@ -72,7 +81,7 @@ struct SettingsView: View {
 
     private func save() {
         do {
-            try ConfigStore(path: appContext.configPath).save(cfg)
+            try appContext.configStore.save(cfg)
             loadError = nil
         } catch {
             loadError = error.localizedDescription

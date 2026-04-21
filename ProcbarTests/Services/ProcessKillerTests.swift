@@ -27,20 +27,45 @@ final class ProcessKillerTests: XCTestCase {
         let sender = FakeKillSender(alwaysAlive: true)
         let killer = ProcessKiller(sender: sender, graceSeconds: 0.1)
         let exp = expectation(description: "done")
-        killer.gracefulKill(tree: [5, 6]) { exp.fulfill() }
+        var reported: KillOutcome?
+        killer.gracefulKill(tree: [5, 6]) { outcome in
+            reported = outcome
+            exp.fulfill()
+        }
         wait(for: [exp], timeout: 1.0)
         XCTAssertEqual(sender.terms, [5, 6])
         XCTAssertEqual(sender.kills, [5, 6])
+        XCTAssertEqual(reported, .escalatedToSigkill)
     }
 
     func test_kill_skips_sigkill_when_process_exits_early() throws {
         let sender = FakeKillSender(alwaysAlive: false)
         let killer = ProcessKiller(sender: sender, graceSeconds: 0.1)
         let exp = expectation(description: "done")
-        killer.gracefulKill(tree: [5]) { exp.fulfill() }
+        var reported: KillOutcome?
+        killer.gracefulKill(tree: [5]) { outcome in
+            reported = outcome
+            exp.fulfill()
+        }
         wait(for: [exp], timeout: 1.0)
         XCTAssertEqual(sender.terms, [5])
         XCTAssertTrue(sender.kills.isEmpty)
+        XCTAssertEqual(reported, .exitedGracefully)
+    }
+
+    func test_forceKill_reports_forced() throws {
+        let sender = FakeKillSender(alwaysAlive: false)
+        let killer = ProcessKiller(sender: sender, graceSeconds: 0.1)
+        let exp = expectation(description: "done")
+        var reported: KillOutcome?
+        killer.forceKill(tree: [5]) { outcome in
+            reported = outcome
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1.0)
+        XCTAssertTrue(sender.terms.isEmpty)
+        XCTAssertEqual(sender.kills, [5])
+        XCTAssertEqual(reported, .forced)
     }
 }
 

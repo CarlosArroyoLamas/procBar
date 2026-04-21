@@ -5,11 +5,22 @@ import os
 final class ConfigStore {
     private let logger = Logger(subsystem: "com.carlos.procbar", category: "config")
 
-    private let path: URL
-    private(set) var current: Config = Config.defaultConfig()
+    let path: URL
+    private let stateQueue = DispatchQueue(label: "com.carlos.procbar.configstore.state")
+    private var _current: Config = Config.defaultConfig()
 
-    private let subject = PassthroughSubject<Config, Never>()
-    var changes: AnyPublisher<Config, Never> { subject.eraseToAnyPublisher() }
+    /// Thread-safe snapshot of the most recently loaded (valid) config.
+    var current: Config { stateQueue.sync { _current } }
+
+    private let changesSubject = PassthroughSubject<Config, Never>()
+    /// Fires whenever the on-disk file is successfully parsed and differs from
+    /// the last-known-good config (or when `save(_:)` writes new content).
+    var changes: AnyPublisher<Config, Never> { changesSubject.eraseToAnyPublisher() }
+
+    private let errorsSubject = CurrentValueSubject<String?, Never>(nil)
+    /// Fires `String` when the on-disk file fails to parse, and `nil` on
+    /// recovery. Subscribers drive the "config error" UI pill.
+    var errors: AnyPublisher<String?, Never> { errorsSubject.eraseToAnyPublisher() }
 
     private var watchSource: DispatchSourceFileSystemObject?
     private var watchDescriptor: Int32 = -1
@@ -42,7 +53,7 @@ final class ConfigStore {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let def = Config.defaultConfig()
         try save(def)
-        current = def
+        stateQueue.sync { _current = def }
         return def
     }
 
@@ -51,11 +62,14 @@ final class ConfigStore {
         let text = try String(contentsOf: path, encoding: .utf8)
         do {
             let cfg = try Config.decode(fromYAML: text)
-            current = cfg
+            stateQueue.sync { _current = cfg }
+            errorsSubject.send(nil)
             logger.info("Config reloaded")
             return cfg
         } catch {
-            logger.error("Invalid YAML: \(error.localizedDescription, privacy: .public)")
+            let msg = error.localizedDescription
+            logger.error("Invalid YAML: \(msg, privacy: .public)")
+            errorsSubject.send(msg)
             throw error
         }
     }
@@ -63,7 +77,9 @@ final class ConfigStore {
     func save(_ cfg: Config) throws {
         let text = try cfg.encodedYAML()
         try text.write(to: path, atomically: true, encoding: .utf8)
-        current = cfg
+        stateQueue.sync { _current = cfg }
+        changesSubject.send(cfg)
+        errorsSubject.send(nil)
     }
 
     func startWatching() {
@@ -99,9 +115,9 @@ final class ConfigStore {
             guard let self else { return }
             do {
                 let cfg = try self.reload()
-                self.subject.send(cfg)
+                self.changesSubject.send(cfg)
             } catch {
-                // keep last-good, don't publish
+                // reload() has already published the error.
             }
             // If file was deleted & recreated (atomic write), re-arm watch.
             if !FileManager.default.fileExists(atPath: self.path.path) {
