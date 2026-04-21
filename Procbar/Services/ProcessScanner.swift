@@ -60,9 +60,43 @@ final class ProcessScanner {
         activity: Config.ActivityConfig
     ) -> ScanResult {
         let now = clock()
-        let detail = source.fetchDetails(for: matchPIDs)
+
+        // Build the child-map once so we can walk descendants for port
+        // aggregation. Dev servers routinely split "the process with the
+        // listening socket" from "the process that matches our name
+        // pattern" — e.g. `next dev` master vs worker. Aggregating ports
+        // over the subtree means either tracked PID shows the port.
+        var childrenByPPID: [Int32: [Int32]] = [:]
+        for p in raw { childrenByPPID[p.ppid, default: []].append(p.pid) }
+
+        // Union of matched PIDs plus all descendants. We fetch details for
+        // the whole set so descendant ports are known without a second pass.
+        var allNeeded = Set(matchPIDs)
+        for pid in matchPIDs {
+            var stack: [Int32] = [pid]
+            while let top = stack.popLast() {
+                for child in childrenByPPID[top] ?? [] {
+                    if allNeeded.insert(child).inserted {
+                        stack.append(child)
+                    }
+                }
+            }
+        }
+
+        let detail = source.fetchDetails(for: Array(allNeeded))
         let byPid = Dictionary(uniqueKeysWithValues: raw.map { ($0.pid, $0) })
         let recentWindow = TimeInterval(activity.recentWindowMinutes * 60)
+
+        // Returns every PID in the subtree rooted at `root`, excluding root.
+        func descendants(of root: Int32) -> [Int32] {
+            var out: [Int32] = []
+            var stack = childrenByPPID[root] ?? []
+            while let top = stack.popLast() {
+                out.append(top)
+                stack.append(contentsOf: childrenByPPID[top] ?? [])
+            }
+            return out
+        }
 
         return stateQueue.sync {
             let lastTicks = lastSample?.ticksByPid ?? [:]
@@ -110,6 +144,16 @@ final class ProcessScanner {
                     state = .dormant;   idle = since
                 }
 
+                // Aggregate ports across self + descendants so masters and
+                // workers both reflect the subtree's listening sockets.
+                var portSet = Set(d.listeningPorts)
+                for child in descendants(of: pid) {
+                    if let cd = detail[child] {
+                        portSet.formUnion(cd.listeningPorts)
+                    }
+                }
+                let aggregatedPorts = portSet.sorted()
+
                 let startDate = Date(timeIntervalSince1970: d.wallStartSeconds)
                 tracked.append(TrackedProcess(
                     pid: rp.pid,
@@ -119,7 +163,7 @@ final class ProcessScanner {
                     cwd: d.cwd ?? "",
                     cpuPercent: cpu,
                     memoryMB: Double(d.residentBytes) / 1_048_576.0,
-                    ports: d.listeningPorts,
+                    ports: aggregatedPorts,
                     uptimeSeconds: max(0, now.timeIntervalSince(startDate)),
                     activity: state,
                     idleSeconds: idle
