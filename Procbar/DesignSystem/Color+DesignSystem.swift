@@ -58,6 +58,25 @@ extension DesignSystem {
             light: NSColor(hex: 0x9A9AA0),
             dark:  NSColor(hex: 0x5C5C65)
         )
+
+        // Activity dot palette. Green→yellow→orange→red traffic-light ramp,
+        // each hue calibrated so it's distinct both in light and dark mode.
+        static let activeDot = ColorPair(
+            light: NSColor(hex: 0x2F8C4C),
+            dark:  NSColor(hex: 0x4FD97C)
+        )
+        static let recentDot = ColorPair(
+            light: NSColor(hex: 0xBF8E0A),
+            dark:  NSColor(hex: 0xF5CC3D)
+        )
+        static let staleDot = ColorPair(
+            light: NSColor(hex: 0xC96A0E),
+            dark:  NSColor(hex: 0xFF9033)
+        )
+        static let dormantDot = ColorPair(
+            light: NSColor(hex: 0xC7341E),
+            dark:  NSColor(hex: 0xFF5B49)
+        )
     }
 }
 

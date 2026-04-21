@@ -97,14 +97,17 @@ final class ProcessScanner {
                     lastActiveAt[pid] = now
                 }
                 let since = now.timeIntervalSince(lastActiveAt[pid]!)
+                let dormantWindow = TimeInterval(activity.dormantWindowDays) * 86_400
                 let state: ActivityState
                 let idle: TimeInterval?
                 if cpu > threshold || firstSeen {
                     state = .activeNow; idle = nil
                 } else if since < recentWindow {
-                    state = .recentlyActive; idle = nil
+                    state = .recent;    idle = since
+                } else if since < dormantWindow {
+                    state = .stale;     idle = since
                 } else {
-                    state = .idle; idle = since
+                    state = .dormant;   idle = since
                 }
 
                 let startDate = Date(timeIntervalSince1970: d.wallStartSeconds)

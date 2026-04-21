@@ -40,7 +40,7 @@ final class ProcessScannerTests: XCTestCase {
         XCTAssertEqual(result.all.count, 1)
     }
 
-    func test_activity_transitions_active_recent_idle() {
+    func test_activity_transitions_active_recent_stale_dormant() {
         var clockTime = Date(timeIntervalSince1970: 1_700_000_000)
         let clock: () -> Date = { clockTime }
         let fake = FakeProcessSource()
@@ -50,7 +50,12 @@ final class ProcessScannerTests: XCTestCase {
             cpuTicks: 0, wallStartSeconds: 1_699_999_000, listeningPorts: []
         )]
         let scanner = ProcessScanner(source: fake, clock: clock)
-        let cfg = Config.ActivityConfig(activeThresholdPercent: 1.0, recentWindowMinutes: 5)
+        // Use small thresholds so the test can traverse all four bands.
+        let cfg = Config.ActivityConfig(
+            activeThresholdPercent: 1.0,
+            recentWindowMinutes: 5,
+            dormantWindowDays: 1
+        )
 
         // t=0: first sample. Cpu=0 but first-seen PID is seeded as active.
         var r = scanner.sample(matchPIDs: [10], activity: cfg)
@@ -58,22 +63,28 @@ final class ProcessScannerTests: XCTestCase {
 
         // t=+1s, large tick delta → active now.
         clockTime = clockTime.addingTimeInterval(1)
-        fake.detailsByPid[10]?.cpuTicks = 500_000_000  // ~50% on a 1-core basis
+        fake.detailsByPid[10]?.cpuTicks = 500_000_000
         r = scanner.sample(matchPIDs: [10], activity: cfg)
         XCTAssertEqual(r.tracked.first?.activity, .activeNow)
 
-        // t=+2s, no tick delta → cpu≈0 → recently active (within 5 min window).
+        // t=+2s, no tick delta → cpu≈0 → recent (within 5 min window).
         clockTime = clockTime.addingTimeInterval(1)
         fake.detailsByPid[10]?.cpuTicks = 500_000_000
         r = scanner.sample(matchPIDs: [10], activity: cfg)
-        XCTAssertEqual(r.tracked.first?.activity, .recentlyActive)
+        XCTAssertEqual(r.tracked.first?.activity, .recent)
 
-        // t=+10min, still no delta → idle.
+        // t=+10min, past recent window but within dormant window → stale.
         clockTime = clockTime.addingTimeInterval(10 * 60)
         r = scanner.sample(matchPIDs: [10], activity: cfg)
-        XCTAssertEqual(r.tracked.first?.activity, .idle)
+        XCTAssertEqual(r.tracked.first?.activity, .stale)
         XCTAssertNotNil(r.tracked.first?.idleSeconds)
-        XCTAssertGreaterThan(r.tracked.first!.idleSeconds!, 590) // ~10 min
+        XCTAssertGreaterThan(r.tracked.first!.idleSeconds!, 590)
+
+        // t=+25h, past dormant window → dormant.
+        clockTime = clockTime.addingTimeInterval(25 * 3600)
+        r = scanner.sample(matchPIDs: [10], activity: cfg)
+        XCTAssertEqual(r.tracked.first?.activity, .dormant)
+        XCTAssertGreaterThan(r.tracked.first!.idleSeconds!, 86_400)
     }
 }
 

@@ -37,6 +37,11 @@ struct MenuBarContentView: View {
                 .frame(maxHeight: DesignSystem.Spacing.popoverMaxHeight)
             }
 
+            if !vm.groups.isEmpty {
+                ActivityLegend()
+                    .padding(.top, 6)
+            }
+
             HairlineDivider().padding(.top, 4)
             FooterView(
                 openPreferences: { appContext.openSettings() },
@@ -73,6 +78,33 @@ struct ConfigErrorPill: View {
                 .cornerRadius(6)
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Compact activity-state legend that shows above the footer so a user can
+/// map the dots back to their meaning without hovering each one.
+struct ActivityLegend: View {
+    var body: some View {
+        HStack(spacing: 14) {
+            entry(color: DesignSystem.Color.activeDot.swiftUI,  label: "ACTIVE")
+            entry(color: DesignSystem.Color.recentDot.swiftUI,  label: "<15m")
+            entry(color: DesignSystem.Color.staleDot.swiftUI,   label: "15m–1d")
+            entry(color: DesignSystem.Color.dormantDot.swiftUI, label: "1d+")
+            Spacer()
+        }
+        .padding(.bottom, 4)
+    }
+
+    private func entry(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text(label)
+                .font(DesignSystem.Typography.microLabel)
+                .tracking(0.8)
+                .foregroundStyle(DesignSystem.Color.textTertiary.swiftUI)
+        }
     }
 }
 

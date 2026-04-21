@@ -1,9 +1,22 @@
 import Foundation
 
 enum ActivityState: String, Equatable {
+    /// CPU is above the threshold right now.
     case activeNow
-    case recentlyActive
-    case idle
+    /// Idle for less than `recent_window_minutes` (default 15).
+    case recent
+    /// Idle between `recent_window_minutes` and `dormant_window_days`.
+    case stale
+    /// Idle for more than `dormant_window_days` (default 1 day).
+    case dormant
+
+    /// Old three-state alias retained so unmigrated code still compiles.
+    @available(*, deprecated, renamed: "recent")
+    static var recentlyActive: ActivityState { .recent }
+
+    /// Old three-state alias for what is now split into `.stale` + `.dormant`.
+    @available(*, deprecated, renamed: "stale")
+    static var idle: ActivityState { .stale }
 }
 
 struct TrackedProcess: Identifiable, Hashable {

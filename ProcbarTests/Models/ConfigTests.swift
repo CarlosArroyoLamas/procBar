@@ -78,7 +78,8 @@ final class ConfigTests: XCTestCase {
         let yaml = "worktree_roots: []\nprocess_patterns: []"
         let cfg = try Config.decode(fromYAML: yaml)
         XCTAssertEqual(cfg.activity.activeThresholdPercent, 1.0, accuracy: 0.001)
-        XCTAssertEqual(cfg.activity.recentWindowMinutes, 5)
+        XCTAssertEqual(cfg.activity.recentWindowMinutes, 15)
+        XCTAssertEqual(cfg.activity.dormantWindowDays, 1)
     }
 
     func test_activity_values_parsed_and_clamped() throws {
@@ -87,11 +88,13 @@ final class ConfigTests: XCTestCase {
         process_patterns: []
         activity:
           active_threshold_percent: 2.5
-          recent_window_minutes: 10
+          recent_window_minutes: 30
+          dormant_window_days: 7
         """
         let cfg = try Config.decode(fromYAML: yaml)
         XCTAssertEqual(cfg.activity.activeThresholdPercent, 2.5, accuracy: 0.001)
-        XCTAssertEqual(cfg.activity.recentWindowMinutes, 10)
+        XCTAssertEqual(cfg.activity.recentWindowMinutes, 30)
+        XCTAssertEqual(cfg.activity.dormantWindowDays, 7)
 
         let tooBig = """
         worktree_roots: []
@@ -99,9 +102,11 @@ final class ConfigTests: XCTestCase {
         activity:
           active_threshold_percent: -1
           recent_window_minutes: 99999
+          dormant_window_days: 9999
         """
         let cfg2 = try Config.decode(fromYAML: tooBig)
         XCTAssertEqual(cfg2.activity.activeThresholdPercent, 0.0)
-        XCTAssertEqual(cfg2.activity.recentWindowMinutes, 240)
+        XCTAssertEqual(cfg2.activity.recentWindowMinutes, 1440)
+        XCTAssertEqual(cfg2.activity.dormantWindowDays, 365)
     }
 }

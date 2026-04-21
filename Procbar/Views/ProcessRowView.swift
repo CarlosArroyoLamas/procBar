@@ -39,7 +39,7 @@ struct ProcessRowView: View {
             Text(String(format: "%.0f%%", process.cpuPercent))
                 .font(DesignSystem.Typography.numeric)
                 .foregroundStyle(
-                    process.activity == .idle
+                    (process.activity == .stale || process.activity == .dormant)
                         ? DesignSystem.Color.textTertiary.swiftUI
                         : DesignSystem.Color.textPrimary.swiftUI
                 )
@@ -96,17 +96,23 @@ struct ProcessRowView: View {
     }
 
     private var nameColor: Color {
-        process.activity == .idle
-            ? DesignSystem.Color.textSecondary.swiftUI
-            : DesignSystem.Color.textPrimary.swiftUI
+        switch process.activity {
+        case .activeNow, .recent: return DesignSystem.Color.textPrimary.swiftUI
+        case .stale, .dormant:    return DesignSystem.Color.textSecondary.swiftUI
+        }
     }
 
     @ViewBuilder
     private var uptimeOrIdleLabel: some View {
-        if process.activity == .idle, let idle = process.idleSeconds {
+        let showIdle = (process.activity == .stale || process.activity == .dormant)
+        if showIdle, let idle = process.idleSeconds {
             Text("idle \(formatUptime(idle))")
                 .font(DesignSystem.Typography.pidSubtitle)
-                .foregroundStyle(DesignSystem.Color.accent.swiftUI)
+                .foregroundStyle(
+                    process.activity == .dormant
+                        ? DesignSystem.Color.dormantDot.swiftUI
+                        : DesignSystem.Color.staleDot.swiftUI
+                )
         } else {
             Text(formatUptime(process.uptimeSeconds))
                 .font(DesignSystem.Typography.pidSubtitle)

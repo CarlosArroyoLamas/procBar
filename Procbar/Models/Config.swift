@@ -106,24 +106,41 @@ struct Config: Codable, Equatable {
 
 extension Config {
     struct ActivityConfig: Codable, Equatable {
+        /// CPU% above this is `.activeNow` (green).
         var activeThresholdPercent: Double
+        /// Idle below this window is `.recent` (yellow). Default 15 min.
         var recentWindowMinutes: Int
+        /// Idle at or above this window is `.dormant` (red). Default 1 day.
+        /// Anything between `recentWindowMinutes` and this is `.stale`
+        /// (orange).
+        var dormantWindowDays: Int
 
         enum CodingKeys: String, CodingKey {
             case activeThresholdPercent = "active_threshold_percent"
             case recentWindowMinutes    = "recent_window_minutes"
+            case dormantWindowDays      = "dormant_window_days"
         }
 
-        init(activeThresholdPercent: Double = 1.0, recentWindowMinutes: Int = 5) {
+        init(
+            activeThresholdPercent: Double = 1.0,
+            recentWindowMinutes: Int = 15,
+            dormantWindowDays: Int = 1
+        ) {
             self.activeThresholdPercent = max(0, activeThresholdPercent)
-            self.recentWindowMinutes    = max(1, min(240, recentWindowMinutes))
+            self.recentWindowMinutes    = max(1, min(1440, recentWindowMinutes))
+            self.dormantWindowDays      = max(1, min(365, dormantWindowDays))
         }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            let pct = try c.decodeIfPresent(Double.self, forKey: .activeThresholdPercent) ?? 1.0
-            let mins = try c.decodeIfPresent(Int.self, forKey: .recentWindowMinutes) ?? 5
-            self.init(activeThresholdPercent: pct, recentWindowMinutes: mins)
+            let pct  = try c.decodeIfPresent(Double.self, forKey: .activeThresholdPercent) ?? 1.0
+            let mins = try c.decodeIfPresent(Int.self, forKey: .recentWindowMinutes) ?? 15
+            let days = try c.decodeIfPresent(Int.self, forKey: .dormantWindowDays) ?? 1
+            self.init(
+                activeThresholdPercent: pct,
+                recentWindowMinutes: mins,
+                dormantWindowDays: days
+            )
         }
     }
 }
